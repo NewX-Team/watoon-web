@@ -36,7 +36,7 @@ const navItems = [
             id="floating-header"
         >
             <div class="flex h-16 items-center justify-between px-6">
-                <!-- Left: FLIXREAD wordmark with monoline film+book icon matching Welcome -->
+                <!-- Left: WATOON wordmark with monoline film+book icon matching Welcome -->
                 <Link
                     class="group flex items-center gap-2.5 text-[#0E0F11] transition-all hover:opacity-85"
                     :href="home.url()"
@@ -71,7 +71,7 @@ const navItems = [
                     </div>
                     <span
                         class="text-[17px] font-semibold tracking-[-0.01em] text-[#0E0F11]"
-                        >FLIXREAD</span
+                        >WATOON</span
                     >
                 </Link>
 
@@ -222,7 +222,7 @@ const navItems = [
                             <span
                                 class="rounded-[4px] border border-white/15 bg-white/10 px-3 py-1 font-mono text-[10px] tracking-[0.16em] text-white/80 uppercase backdrop-blur-md"
                             >
-                                FlixRead Original
+                                Watoon Original
                             </span>
                         </div>
                         <div class="font-mono text-[11px] text-white/50">

@@ -64,14 +64,14 @@ interface FaqItem {
 const faqs = ref<FaqItem[]>([
     {
         id: 1,
-        question: 'What is FlixRead?',
-        answer: 'FlixRead is an integrated cultural platform uniting cinema-grade independent streaming and serialized literature in one calm, subscription-based ecosystem. We combine pristine 4K video masters and distraction-free prose so you can experience deep storytelling in both visual and written forms.',
+        question: 'What is Watoon?',
+        answer: 'Watoon is an integrated cultural platform uniting cinema-grade independent streaming and serialized literature in one calm, subscription-based ecosystem. We combine pristine 4K video masters and distraction-free prose so you can experience deep storytelling in both visual and written forms.',
         highlight: 'Unified Cultural Platform',
     },
     {
         id: 2,
         question: 'Can I use one account for film and novel?',
-        answer: 'Yes, absolutely. Your single FlixRead identity handles film watchlists, reading bookmarks, private reading notes, and creator discourse channels seamlessly across web, iOS, Android, and TV apps with real-time cloud synchronization.',
+        answer: 'Yes, absolutely. Your single Watoon identity handles film watchlists, reading bookmarks, private reading notes, and creator discourse channels seamlessly across web, iOS, Android, and TV apps with real-time cloud synchronization.',
         highlight: 'One Unified Account',
     },
     {
@@ -218,7 +218,7 @@ onUnmounted(() => {
     <div
         class="min-h-screen animate-in overflow-x-hidden bg-[#FAFAF7] font-sans text-[#0E0F11] antialiased duration-300 fade-in selection:bg-[#dee0ff] selection:text-[#00115a]"
     >
-        <Head title="FlixRead — Films tonight. Chapters before bed.">
+        <Head title="Watoon — Films tonight. Chapters before bed.">
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link
                 rel="preconnect"
@@ -246,7 +246,7 @@ onUnmounted(() => {
             id="floating-header"
         >
             <div class="flex h-16 items-center justify-between px-6">
-                <!-- Left: FLIXREAD wordmark with monoline film+book icon -->
+                <!-- Left: WATOON wordmark with monoline film+book icon -->
                 <a
                     class="group flex cursor-pointer items-center gap-2.5 text-[#0E0F11] transition-all hover:opacity-85"
                     href="#"
@@ -282,7 +282,7 @@ onUnmounted(() => {
                     </div>
                     <span
                         class="text-[17px] font-semibold tracking-[-0.01em] text-[#0E0F11]"
-                        >FLIXREAD</span
+                        >WATOON</span
                     >
                 </a>
 
@@ -1651,7 +1651,7 @@ onUnmounted(() => {
                         Questions, answered.
                     </h2>
                     <p class="text-[15px] font-light text-[#6A6A6E]">
-                        Everything you need to know about FlixRead streaming,
+                        Everything you need to know about Watoon streaming,
                         serialized novels, and membership privileges.
                     </p>
                 </div>
@@ -1791,7 +1791,7 @@ onUnmounted(() => {
                         <div
                             class="text-[17px] font-semibold tracking-[-0.01em] text-[#0E0F11]"
                         >
-                            FLIXREAD
+                            WATOON
                         </div>
                         <p
                             class="max-w-sm text-[13px] leading-relaxed text-[#6A6A6E]"
@@ -1987,7 +1987,7 @@ onUnmounted(() => {
                     class="flex flex-col items-center justify-between gap-4 pt-8 text-[12px] text-[#6A6A6E] md:flex-row"
                 >
                     <div>
-                        © 2025 FlixRead Inc. All rights reserved. Crafted for
+                        © 2025 Watoon Inc. All rights reserved. Crafted for
                         critical readers and film enthusiasts.
                     </div>
                     <div class="flex items-center gap-6">

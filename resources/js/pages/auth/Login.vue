@@ -17,7 +17,7 @@ const showPassword = ref(false);
 
 <template>
     <div>
-        <Head title="Sign In — FlixRead" />
+        <Head title="Sign In — Watoon" />
 
         <!-- Segmented Toggle -->
         <div
@@ -236,7 +236,7 @@ const showPassword = ref(false);
 
             <!-- Footer prompt -->
             <div class="pt-2 text-center text-xs text-[#6A6A6E]">
-                New to FlixRead?
+                New to Watoon?
                 <Link
                     :href="register()"
                     class="ml-1 font-medium text-[#1B44E8] hover:underline"

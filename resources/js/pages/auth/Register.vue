@@ -16,7 +16,7 @@ const selectedRole = ref<'viewer' | 'film' | 'novel'>('viewer');
 
 <template>
     <div>
-        <Head title="Create Your Account — FlixRead" />
+        <Head title="Create Your Account — Watoon" />
 
         <!-- Segmented Toggle -->
         <div
