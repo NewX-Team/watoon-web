@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     ArrowLeft,
     Bookmark,
@@ -63,23 +63,60 @@ const props = defineProps<{
 const page = usePage<{ auth: { user: User } }>();
 const currentUser = computed(() => page.props.auth?.user);
 
+const userInitials = computed(() => {
+    const name = currentUser.value?.name || 'User';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+});
+
 // Search & UI states
 const searchQuery = ref('');
 const searchInputRef = ref<HTMLInputElement | null>(null);
+const userMenuRef = ref<HTMLElement | null>(null);
 const activeTab = ref<'home' | 'favorite' | 'subscribe'>('home');
 const mediaType = ref<'film' | 'novel'>('film');
 const isProModalOpen = ref(false);
 const userMenuOpen = ref(false);
 const isScrolled = ref(false);
-const isBookmarked = ref(false);
 const isReadMore = ref(false);
 const isNewestFirst = ref(true);
 const showNovelNotice = ref(false);
 const showShareToast = ref(false);
+const showBookmarkToast = ref(false);
+const bookmarkToastMessage = ref('');
+let bookmarkToastTimer: ReturnType<typeof setTimeout> | null = null;
 
-// Sorted episodes list (fixed bug: interactive sorting)
+// Watchlist synchronization with localStorage
+const loadIsBookmarked = (): boolean => {
+    if (typeof window === 'undefined') return false;
+    try {
+        const stored = localStorage.getItem('watoon_watchlist');
+        const list: number[] = stored ? JSON.parse(stored) : [1, 4];
+        return list.includes(props.film.id);
+    } catch {
+        return false;
+    }
+};
+
+const isBookmarked = ref(loadIsBookmarked());
+
+// Sorted & filtered episodes list
 const displayedEpisodes = computed(() => {
-    const list = [...props.episodes];
+    let list = [...props.episodes];
+
+    if (searchQuery.value.trim()) {
+        const q = searchQuery.value.toLowerCase();
+        list = list.filter(
+            (ep) =>
+                ep.title.toLowerCase().includes(q) ||
+                ep.code.toLowerCase().includes(q) ||
+                ep.synopsis.toLowerCase().includes(q),
+        );
+    }
+
     if (isNewestFirst.value) {
         return list; // EP 08 to EP 01
     }
@@ -90,12 +127,75 @@ const toggleSort = () => {
     isNewestFirst.value = !isNewestFirst.value;
 };
 
-// Toggle watchlist
+// Toggle watchlist & persist
 const toggleWatchlist = () => {
     isBookmarked.value = !isBookmarked.value;
+    if (typeof window !== 'undefined') {
+        try {
+            const stored = localStorage.getItem('watoon_watchlist');
+            let list: number[] = stored ? JSON.parse(stored) : [1, 4];
+            if (isBookmarked.value) {
+                if (!list.includes(props.film.id)) {
+                    list.push(props.film.id);
+                }
+            } else {
+                list = list.filter((id) => id !== props.film.id);
+            }
+            localStorage.setItem('watoon_watchlist', JSON.stringify(list));
+
+            // Sync with watoon_user_favorites if available
+            const favStored = localStorage.getItem('watoon_user_favorites');
+            if (favStored) {
+                let favList = JSON.parse(favStored);
+                if (Array.isArray(favList)) {
+                    if (isBookmarked.value) {
+                        const exists = favList.some(
+                            (f: any) =>
+                                f.id === `fav-${props.film.id}` ||
+                                f.title === props.film.title,
+                        );
+                        if (!exists) {
+                            favList.unshift({
+                                id: `fav-${props.film.id}`,
+                                type: 'film',
+                                title: props.film.title,
+                                year: props.film.year,
+                                genre: props.film.genres?.[0] || 'Drama',
+                                savedAgo: 'Just now',
+                                savedTimestamp: Date.now(),
+                                image: props.film.poster,
+                                href: `/films/${props.film.id}`,
+                            });
+                        }
+                    } else {
+                        favList = favList.filter(
+                            (f: any) =>
+                                f.id !== `fav-${props.film.id}` &&
+                                f.title !== props.film.title,
+                        );
+                    }
+                    localStorage.setItem(
+                        'watoon_user_favorites',
+                        JSON.stringify(favList),
+                    );
+                }
+            }
+        } catch {
+            // ignore
+        }
+    }
+
+    bookmarkToastMessage.value = isBookmarked.value
+        ? `"${props.film.title}" ditambahkan ke Watchlist`
+        : `"${props.film.title}" dihapus dari Watchlist`;
+    showBookmarkToast.value = true;
+    if (bookmarkToastTimer) clearTimeout(bookmarkToastTimer);
+    bookmarkToastTimer = setTimeout(() => {
+        showBookmarkToast.value = false;
+    }, 3000);
 };
 
-// Share film
+// Share film URL
 const shareFilm = async () => {
     try {
         if (navigator.clipboard) {
@@ -110,6 +210,15 @@ const shareFilm = async () => {
         setTimeout(() => {
             showShareToast.value = false;
         }, 3000);
+    }
+};
+
+// Search films from header input on Enter
+const handleSearch = () => {
+    if (searchQuery.value.trim()) {
+        router.visit(
+            `/dashboard?q=${encodeURIComponent(searchQuery.value.trim())}`,
+        );
     }
 };
 
@@ -128,6 +237,16 @@ const handleScroll = () => {
     isScrolled.value = window.scrollY > 20;
 };
 
+// Click outside user menu listener
+const handleClickOutside = (e: MouseEvent) => {
+    if (
+        userMenuRef.value &&
+        !userMenuRef.value.contains(e.target as Node)
+    ) {
+        userMenuOpen.value = false;
+    }
+};
+
 // Keydown shortcuts
 const handleKeyDown = (e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -136,19 +255,22 @@ const handleKeyDown = (e: KeyboardEvent) => {
     }
     if (e.key === 'Escape') {
         userMenuOpen.value = false;
-        activePlayingEpisode.value = null;
         isProModalOpen.value = false;
+        showNovelNotice.value = false;
     }
 };
 
 onMounted(() => {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('scroll', handleScroll, { passive: true });
+    document.addEventListener('click', handleClickOutside);
 });
 
 onUnmounted(() => {
     window.removeEventListener('keydown', handleKeyDown);
     window.removeEventListener('scroll', handleScroll);
+    document.removeEventListener('click', handleClickOutside);
+    if (bookmarkToastTimer) clearTimeout(bookmarkToastTimer);
 });
 </script>
 
@@ -175,7 +297,7 @@ onUnmounted(() => {
                 <div class="flex items-center gap-7">
                     <!-- Brand Wordmark with Monoline Film Frame Mark -->
                     <Link
-                        :href="dashboard()"
+                        :href="dashboard.url()"
                         class="group flex items-center gap-2.5"
                     >
                         <div
@@ -201,26 +323,25 @@ onUnmounted(() => {
                         class="hidden items-center gap-7 text-[13px] font-medium md:flex"
                     >
                         <Link
-                            :href="dashboard()"
+                            :href="dashboard.url()"
                             class="relative cursor-pointer py-1 tracking-[-0.01em] text-[#8C8C90] transition-colors hover:text-[#F2EFEA]"
                         >
                             Home
                         </Link>
 
                         <Link
-                            :href="dashboard() + '?tab=favorite'"
+                            :href="dashboard.url({ query: { tab: 'favorite' } })"
                             class="relative cursor-pointer py-1 tracking-[-0.01em] text-[#8C8C90] transition-colors hover:text-[#F2EFEA]"
                         >
                             Favorite
                         </Link>
 
-                        <button
-                            type="button"
-                            @click="isProModalOpen = true"
+                        <Link
+                            :href="dashboard.url({ query: { tab: 'subscribe' } })"
                             class="relative cursor-pointer py-1 tracking-[-0.01em] text-[#8C8C90] transition-colors hover:text-[#F2EFEA]"
                         >
                             Subscribe
-                        </button>
+                        </Link>
 
                         <!-- Search Bar with ⌘K -->
                         <div
@@ -233,6 +354,7 @@ onUnmounted(() => {
                             <input
                                 ref="searchInputRef"
                                 v-model="searchQuery"
+                                @keydown.enter="handleSearch"
                                 class="w-full border-0 bg-transparent p-0 text-[13px] font-normal text-[#F2EFEA] placeholder-[#8C8C90] focus:ring-0 focus:outline-none"
                                 placeholder="Search films…"
                                 type="text"
@@ -291,7 +413,7 @@ onUnmounted(() => {
                     </button>
 
                     <!-- User Avatar & Dropdown -->
-                    <div class="relative">
+                    <div ref="userMenuRef" class="relative">
                         <button
                             type="button"
                             @click="userMenuOpen = !userMenuOpen"
@@ -333,7 +455,7 @@ onUnmounted(() => {
 
                             <div class="space-y-0.5 py-1">
                                 <Link
-                                    :href="dashboard()"
+                                    :href="dashboard.url()"
                                     class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-[#F2EFEA] transition-colors hover:bg-white/[0.06]"
                                 >
                                     <ArrowLeft class="h-3.5 w-3.5 text-[#8C8C90]" />
@@ -341,12 +463,13 @@ onUnmounted(() => {
                                 </Link>
 
                                 <Link
-                                    :href="edit()"
+                                    :href="edit.url()"
                                     class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-[#F2EFEA] transition-colors hover:bg-white/[0.06]"
                                 >
                                     <Settings class="h-3.5 w-3.5 text-[#8C8C90]" />
                                     <span>Pengaturan Akun</span>
                                 </Link>
+
 
                                 <button
                                     type="button"
@@ -365,7 +488,7 @@ onUnmounted(() => {
                                 class="border-t border-[rgba(242,239,234,0.08)] pt-1"
                             >
                                 <Link
-                                    :href="logout()"
+                                    :href="logout.url()"
                                     method="post"
                                     as="button"
                                     class="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-medium text-red-400 transition-colors hover:bg-red-500/10"
@@ -417,6 +540,15 @@ onUnmounted(() => {
             <span>Tautan film berhasil disalin ke papan klip!</span>
         </div>
 
+        <!-- BOOKMARK TOAST NOTIFICATION -->
+        <div
+            v-if="showBookmarkToast"
+            class="fixed bottom-8 right-8 z-50 flex items-center gap-2.5 rounded-xl border border-[rgba(27,68,232,0.4)] bg-[#17181B] px-4 py-3 text-xs text-white shadow-2xl backdrop-blur-xl"
+        >
+            <BookmarkCheck class="h-4 w-4 text-[#1B44E8]" />
+            <span>{{ bookmarkToastMessage }}</span>
+        </div>
+
         <!-- [2] HERO BACKGROUND STRIP -->
         <div
             class="pointer-events-none absolute inset-x-0 top-0 z-0 h-[380px] overflow-hidden select-none"
@@ -436,7 +568,7 @@ onUnmounted(() => {
             <!-- Breadcrumb Navigation back to Dashboard -->
             <div class="mb-8 flex items-center justify-between">
                 <Link
-                    :href="dashboard()"
+                    :href="dashboard.url()"
                     class="group inline-flex items-center gap-2 text-xs font-medium text-[#8C8C90] transition-colors hover:text-[#F2EFEA]"
                 >
                     <ArrowLeft class="h-4 w-4 transition-transform group-hover:-translate-x-1" />

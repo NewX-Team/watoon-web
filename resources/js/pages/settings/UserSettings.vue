@@ -270,15 +270,15 @@ const downloadInvoice = (date: string) => {
             <nav class="pointer-events-auto max-w-[1240px] mx-auto h-14 bg-[#17181B]/90 backdrop-blur-md border border-[rgba(242,239,234,0.08)] rounded-[12px] px-5 flex items-center justify-between shadow-[0_8px_30px_rgb(0,0,0,0.45)]">
                 <!-- Brand & Primary Nav -->
                 <div class="flex items-center gap-7">
-                    <Link :href="dashboard()" class="flex items-center gap-2 group">
+                    <Link :href="dashboard.url()" class="flex items-center gap-2 group">
                         <span class="text-base font-semibold tracking-tight text-[#F2EFEA] group-hover:text-white transition-colors duration-150">WATOON</span>
                         <span class="w-1.5 h-1.5 rounded-full bg-[#1B44E8]"></span>
                     </Link>
 
                     <div class="hidden md:flex items-center gap-6 text-[13px] font-medium text-[#8C8C90]">
-                        <Link :href="dashboard()" class="hover:text-[#F2EFEA] transition-colors duration-150">Home</Link>
-                        <Link :href="dashboard() + '?tab=favorite'" class="hover:text-[#F2EFEA] transition-colors duration-150">Favorite</Link>
-                        <button type="button" @click="isPlanModalOpen = true" class="hover:text-[#F2EFEA] transition-colors duration-150">Subscribe</button>
+                        <Link :href="dashboard.url()" class="hover:text-[#F2EFEA] transition-colors duration-150">Home</Link>
+                        <Link :href="dashboard.url({ query: { tab: 'favorite' } })" class="hover:text-[#F2EFEA] transition-colors duration-150">Favorite</Link>
+                        <Link :href="dashboard.url({ query: { tab: 'subscribe' } })" class="hover:text-[#F2EFEA] transition-colors duration-150">Subscribe</Link>
                     </div>
 
                     <!-- Global Search Input Trigger -->
@@ -330,7 +330,7 @@ const downloadInvoice = (date: string) => {
                                 <p class="text-[11px] text-[#8C8C90] truncate">{{ currentUser.email }}</p>
                             </div>
                             <Link
-                                :href="dashboard()"
+                                :href="dashboard.url()"
                                 class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[#8C8C90] hover:text-[#F2EFEA] hover:bg-white/[0.04] transition-colors"
                             >
                                 <Laptop class="w-4 h-4 text-[#8C8C90]" />
@@ -349,7 +349,7 @@ const downloadInvoice = (date: string) => {
                             </button>
                             <div class="border-t border-[rgba(242,239,234,0.08)] my-1"></div>
                             <Link
-                                :href="logout()"
+                                :href="logout.url()"
                                 method="post"
                                 as="button"
                                 class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[#E85C4A]/80 hover:text-[#E85C4A] hover:bg-[#E85C4A]/10 transition-colors text-left"

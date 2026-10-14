@@ -330,7 +330,7 @@ onUnmounted(() => {
                 <div class="flex items-center gap-4 sm:gap-5">
                     <template v-if="$page.props.auth.user">
                         <Link
-                            :href="dashboard()"
+                            :href="dashboard.url()"
                             class="rounded-[10px] bg-[#0E0F11] px-[18px] py-[9px] text-[14px] font-medium text-[#FAFAF7] shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#1B44E8] hover:shadow-md active:translate-y-0"
                         >
                             Dashboard
@@ -455,7 +455,7 @@ onUnmounted(() => {
                         <div class="mb-5 flex flex-wrap items-center gap-4">
                             <Link
                                 v-if="$page.props.auth.user"
-                                :href="dashboard()"
+                                :href="dashboard.url()"
                                 class="inline-flex items-center justify-center rounded-[12px] bg-[#0E0F11] px-7 py-3.5 text-[14px] font-medium text-white shadow-[0_4px_16px_rgba(14,15,17,0.12)] transition-all hover:-translate-y-0.5 hover:bg-[#1B44E8] hover:shadow-[0_8px_24px_rgba(27,68,232,0.25)]"
                             >
                                 Go to Dashboard
