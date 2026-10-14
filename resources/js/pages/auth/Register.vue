@@ -235,6 +235,11 @@ const selectedRole = ref<'viewer' | 'film' | 'novel'>('viewer');
                     ✦ Novels are coming soon — you'll join the private creator
                     waitlist.
                 </div>
+                <input
+                    type="hidden"
+                    name="role"
+                    :value="selectedRole === 'viewer' ? 'user' : 'kreator'"
+                />
             </div>
 
             <!-- Terms and Privacy Checkbox -->
