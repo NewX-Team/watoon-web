@@ -1,4 +1,4 @@
-import { createInertiaApp } from '@inertiajs/vue3';
+import { createInertiaApp, router } from '@inertiajs/vue3';
 import { initializeTheme } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
@@ -14,6 +14,8 @@ void createInertiaApp({
         switch (true) {
             case name === 'Welcome':
             case name === 'dashboard/User':
+            case name.startsWith('films/'):
+            case name === 'settings/UserSettings':
                 return null;
             case name === 'auth/Login':
             case name === 'auth/Register':
@@ -45,3 +47,38 @@ initializeTheme();
 
 // This will listen for flash toast data from the server...
 initializeFlashToast();
+
+// Prevent overscroll bounce / white canvas flash on macOS and iOS, and keep viewport canvas in sync
+const syncPageCanvas = (component?: string) => {
+    if (typeof document === 'undefined') {
+        return;
+    }
+
+    document.documentElement.style.overscrollBehavior = 'none';
+    document.documentElement.style.setProperty('overscroll-behavior-y', 'none');
+    document.documentElement.style.setProperty('overscroll-behavior-x', 'none');
+    document.body.style.overscrollBehavior = 'none';
+    document.body.style.setProperty('overscroll-behavior-y', 'none');
+    document.body.style.setProperty('overscroll-behavior-x', 'none');
+
+    const isLightPage =
+        component === 'Welcome' ||
+        component === 'auth/Login' ||
+        component === 'auth/Register';
+    const bgColor = isLightPage ? '#FAFAF7' : '#0E0F11';
+
+    document.documentElement.style.backgroundColor = bgColor;
+    document.body.style.backgroundColor = bgColor;
+
+    const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeColorMeta) {
+        themeColorMeta.setAttribute('content', bgColor);
+    }
+};
+
+syncPageCanvas();
+
+router.on('navigate', (event) => {
+    syncPageCanvas(event.detail.page.component);
+});
+
