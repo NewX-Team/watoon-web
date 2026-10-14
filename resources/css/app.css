@@ -89,6 +89,9 @@
             'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
             'Noto Color Emoji';
         scroll-behavior: smooth;
+        overscroll-behavior: none;
+        overscroll-behavior-y: none;
+        overscroll-behavior-x: none;
     }
 }
 
