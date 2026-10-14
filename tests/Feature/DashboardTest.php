@@ -34,3 +34,35 @@ test('authenticated admin sees admin dashboard', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component('dashboard/Admin'));
 });
+
+test('authenticated user accessing favorites is redirected to dashboard favorite tab', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('favorites'))
+        ->assertRedirect(route('dashboard', ['tab' => 'favorite']));
+});
+
+test('authenticated user accessing subscribe is redirected to dashboard subscribe tab', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('subscribe'))
+        ->assertRedirect(route('dashboard', ['tab' => 'subscribe']));
+});
+
+test('authenticated user accessing favorite singular is redirected to dashboard favorite tab', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/favorite')
+        ->assertRedirect(route('dashboard', ['tab' => 'favorite']));
+});
+
+test('authenticated user accessing home is redirected to dashboard', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/home')
+        ->assertRedirect(route('dashboard'));
+});

@@ -2,12 +2,22 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FilmController;
+use App\Http\Controllers\MessageController;
+use App\Http\Controllers\SubscriptionTierController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::get('home', fn () => redirect()->route('dashboard'))->name('dashboard.home');
+    Route::get('favorite', fn () => redirect()->route('dashboard', ['tab' => 'favorite']));
+    Route::get('favorites', fn () => redirect()->route('dashboard', ['tab' => 'favorite']))->name('favorites');
+    Route::get('subscribe', fn () => redirect()->route('dashboard', ['tab' => 'subscribe']))->name('subscribe');
+    Route::get('subscribes', fn () => redirect()->route('dashboard', ['tab' => 'subscribe']));
+    Route::get('messages', [MessageController::class, 'index'])->name('messages.index');
+    Route::get('message', fn () => redirect()->route('messages.index'));
+    Route::post('subscription/tier', [SubscriptionTierController::class, 'update'])->name('subscription.tier.update');
     Route::get('films/{id}', [FilmController::class, 'show'])->name('films.show');
     Route::get('films/{film}/episodes/{episode}', [FilmController::class, 'watchEpisode'])->name('films.episodes.watch');
 });
