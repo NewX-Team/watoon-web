@@ -15,6 +15,7 @@ void createInertiaApp({
             case name === 'Welcome':
             case name === 'dashboard/User':
             case name.startsWith('films/'):
+            case name.startsWith('messages/'):
             case name === 'settings/UserSettings':
                 return null;
             case name === 'auth/Login':
