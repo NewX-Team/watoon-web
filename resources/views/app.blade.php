@@ -1,32 +1,27 @@
+@php
+    $isLightPage = in_array($page['component'] ?? '', ['Welcome', 'auth/Login', 'auth/Register']);
+    $initialBg = $isLightPage ? '#FAFAF7' : '#0E0F11';
+@endphp
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"  @class(['dark' => ($appearance ?? 'system') == 'dark'])>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="{{ $isLightPage ? '' : 'dark' }}">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="{{ $initialBg }}">
 
-        {{-- Inline script to detect system dark mode preference and apply it immediately --}}
-        <script>
-            (function() {
-                const appearance = '{{ $appearance ?? "system" }}';
-
-                if (appearance === 'system') {
-                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-                    if (prefersDark) {
-                        document.documentElement.classList.add('dark');
-                    }
-                }
-            })();
-        </script>
-
-        {{-- Inline style to set the HTML background color based on our theme in app.css --}}
+        {{-- Prevent overscroll bounce and white canvas flash on Mac/iOS --}}
         <style>
-            html {
-                background-color: oklch(1 0 0);
+            html,
+            body {
+                background-color: {{ $initialBg }} !important;
+                overscroll-behavior: none !important;
+                overscroll-behavior-y: none !important;
+                overscroll-behavior-x: none !important;
             }
 
-            html.dark {
-                background-color: oklch(0.145 0 0);
+            html.dark,
+            html.dark body {
+                background-color: #0E0F11 !important;
             }
         </style>
 
@@ -41,7 +36,7 @@
             <title>{{ config('app.name', 'Watoon') }}</title>
         </x-inertia::head>
     </head>
-    <body class="font-sans antialiased">
+    <body class="font-sans antialiased {{ $isLightPage ? 'bg-[#FAFAF7] text-[#0E0F11]' : 'bg-[#0E0F11] text-[#F2EFEA]' }}">
         <x-inertia::app />
     </body>
 </html>
