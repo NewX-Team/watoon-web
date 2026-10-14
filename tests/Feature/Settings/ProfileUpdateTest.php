@@ -83,3 +83,50 @@ test('correct password must be provided to delete account', function () {
 
     expect($user->fresh())->not->toBeNull();
 });
+
+test('user role renders settings/UserSettings page', function () {
+    $user = User::factory()->create();
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('profile.edit'));
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page->component('settings/UserSettings'));
+});
+
+test('admin role renders default settings/Profile page', function () {
+    $admin = User::factory()->admin()->create();
+
+    $response = $this
+        ->actingAs($admin)
+        ->get(route('profile.edit'));
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page->component('settings/Profile'));
+});
+
+test('profile can update username bio and phone', function () {
+    $user = User::factory()->create();
+
+    $response = $this
+        ->actingAs($user)
+        ->patch(route('profile.update'), [
+            'name' => 'Rian Pratama',
+            'email' => $user->email,
+            'username' => 'rianprtm',
+            'bio' => 'Film archivist and cinema essayist.',
+            'phone' => '+62 812 3456 7890',
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('profile.edit'));
+
+    $user->refresh();
+
+    expect($user->name)->toBe('Rian Pratama');
+    expect($user->username)->toBe('rianprtm');
+    expect($user->bio)->toBe('Film archivist and cinema essayist.');
+    expect($user->phone)->toBe('+62 812 3456 7890');
+});
