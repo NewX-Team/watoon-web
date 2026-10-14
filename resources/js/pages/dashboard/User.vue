@@ -2,7 +2,6 @@
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import {
     ArrowRight,
-    Bookmark,
     BookmarkCheck,
     Check,
     ChevronDown,
@@ -17,7 +16,7 @@ import {
     Star,
     X,
 } from '@lucide/vue';
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { dashboard, logout } from '@/routes';
 import { edit } from '@/routes/profile';
 import type { User } from '@/types/auth';
@@ -35,8 +34,17 @@ const activeSpotlightIndex = ref(0);
 const isCarouselPaused = ref(false);
 const isScrolled = ref(false);
 const userMenuOpen = ref(false);
-const watchModalFilm = ref<any | null>(null);
-const myWatchlist = ref<number[]>([1, 4]); // default saved items
+const loadWatchlist = (): number[] => {
+    if (typeof window === 'undefined') return [1, 4];
+    try {
+        const stored = localStorage.getItem('watoon_watchlist');
+        return stored ? JSON.parse(stored) : [1, 4];
+    } catch {
+        return [1, 4];
+    }
+};
+
+const myWatchlist = ref<number[]>(loadWatchlist()); // default saved items
 const showNovelNotice = ref(false);
 
 const AUTOPLAY_INTERVAL = 5000;
@@ -450,8 +458,9 @@ const setupScrollObserver = () => {
     if (
         typeof window === 'undefined' ||
         typeof IntersectionObserver === 'undefined'
-    )
+    ) {
         return;
+    }
 
     observer?.disconnect();
     observer = new IntersectionObserver(
@@ -459,22 +468,20 @@ const setupScrollObserver = () => {
             entries.forEach((entry) => {
                 if (entry.isIntersecting) {
                     entry.target.classList.add('is-revealed');
-                } else {
-                    const rect = entry.boundingClientRect;
-                    // Re-trigger reveal on both scroll up & down when out of viewport
-                    if (rect.top > window.innerHeight || rect.bottom < 0) {
-                        entry.target.classList.remove('is-revealed');
-                    }
                 }
             });
         },
         {
-            threshold: 0.08,
-            rootMargin: '0px 0px -40px 0px',
+            threshold: 0.02,
+            rootMargin: '100px 0px 100px 0px',
         },
     );
 
     document.querySelectorAll('.scroll-reveal').forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        if (rect.top < window.innerHeight + 150) {
+            el.classList.add('is-revealed');
+        }
         observer?.observe(el);
     });
 };
@@ -544,16 +551,76 @@ const filteredExploreFilms = computed(() =>
     }),
 );
 
-// Toggle watchlist
+const totalFavoritesCount = computed(() => {
+    return (
+        filteredContinueWatching.value.length +
+        filteredPopularWeekly.value.length +
+        filteredNewReleases.value.length +
+        filteredExploreFilms.value.length
+    );
+});
+
+// Toggle watchlist with persistent storage
 const toggleWatchlist = (id: number) => {
     if (myWatchlist.value.includes(id)) {
         myWatchlist.value = myWatchlist.value.filter((x) => x !== id);
     } else {
         myWatchlist.value.push(id);
     }
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(
+            'watoon_watchlist',
+            JSON.stringify(myWatchlist.value),
+        );
+    }
+    nextTick(() => {
+        setupScrollObserver();
+    });
 };
 
 const isBookmarked = (id: number) => myWatchlist.value.includes(id);
+
+// Switch tab smoothly without blank screen
+const switchTab = (tab: 'home' | 'favorite') => {
+    activeTab.value = tab;
+    searchQuery.value = '';
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    nextTick(() => {
+        setupScrollObserver();
+    });
+};
+
+// React to tab changes to sync carousel, URL and scroll observer
+watch(activeTab, (newTab) => {
+    if (newTab === 'home') {
+        restartCarouselTimer();
+    } else {
+        stopCarouselTimer();
+    }
+
+    if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        if (newTab === 'favorite') {
+            url.searchParams.set('tab', 'favorite');
+        } else {
+            url.searchParams.delete('tab');
+            if (url.hash === '#watchlist') {
+                url.hash = '';
+            }
+        }
+        window.history.replaceState({}, '', url.toString());
+    }
+
+    nextTick(() => {
+        setupScrollObserver();
+    });
+});
+
+watch(searchQuery, () => {
+    nextTick(() => {
+        setupScrollObserver();
+    });
+});
 
 // Switch media type
 const selectMediaType = (type: 'film' | 'novel') => {
@@ -573,12 +640,29 @@ const handleKeyDown = (e: KeyboardEvent) => {
     }
     if (e.key === 'Escape') {
         userMenuOpen.value = false;
-        watchModalFilm.value = null;
         isProModalOpen.value = false;
     }
 };
 
+const checkUrlTab = () => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (
+        params.get('tab') === 'favorite' ||
+        window.location.hash === '#watchlist'
+    ) {
+        activeTab.value = 'favorite';
+    } else if (params.get('tab') === 'home' || !params.has('tab')) {
+        activeTab.value = 'home';
+    }
+    nextTick(() => {
+        setupScrollObserver();
+    });
+};
+
 onMounted(() => {
+    checkUrlTab();
+    window.addEventListener('popstate', checkUrlTab);
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('scroll', handleScroll, { passive: true });
     startCarouselTimer();
@@ -588,6 +672,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+    window.removeEventListener('popstate', checkUrlTab);
     window.removeEventListener('keydown', handleKeyDown);
     window.removeEventListener('scroll', handleScroll);
     stopCarouselTimer();
@@ -645,7 +730,7 @@ onUnmounted(() => {
                     >
                         <button
                             type="button"
-                            @click="activeTab = 'home'"
+                            @click="switchTab('home')"
                             class="relative cursor-pointer py-1 tracking-[-0.01em] transition-colors"
                             :class="
                                 activeTab === 'home'
@@ -662,7 +747,7 @@ onUnmounted(() => {
 
                         <button
                             type="button"
-                            @click="activeTab = 'favorite'"
+                            @click="switchTab('favorite')"
                             class="relative cursor-pointer py-1 tracking-[-0.01em] transition-colors"
                             :class="
                                 activeTab === 'favorite'
@@ -894,13 +979,35 @@ onUnmounted(() => {
                     </div>
                     <button
                         type="button"
-                        @click="
-                            searchQuery = '';
-                            activeTab = 'home';
-                        "
+                        @click="switchTab('home')"
                         class="text-xs text-[#8C8C90] underline hover:text-[#F2EFEA]"
                     >
                         Reset Filter
+                    </button>
+                </div>
+
+                <!-- EMPTY STATE WHEN FAVORITE HAS NO ITEMS -->
+                <div
+                    v-if="activeTab === 'favorite' && totalFavoritesCount === 0"
+                    class="my-12 rounded-2xl border border-[rgba(242,239,234,0.08)] bg-[#17181B] p-12 text-center"
+                >
+                    <div
+                        class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#1B44E8]/20 bg-[#1B44E8]/10 text-[#7A9BFF]"
+                    >
+                        <BookmarkCheck class="h-7 w-7 text-[#1B44E8]" />
+                    </div>
+                    <h3 class="mb-2 text-lg font-semibold text-[#F2EFEA]">
+                        Belum Ada Koleksi Favorit
+                    </h3>
+                    <p class="mx-auto mb-6 max-w-md text-[13px] leading-relaxed text-[#8C8C90]">
+                        Simpan film yang ingin Anda tonton nanti dengan menekan tombol bookmark pada poster atau halaman detail film.
+                    </p>
+                    <button
+                        type="button"
+                        @click="switchTab('home')"
+                        class="inline-flex h-10 items-center gap-2 rounded-xl bg-[#1B44E8] px-6 text-[13px] font-medium text-white shadow-lg shadow-[#1B44E8]/25 transition-all hover:bg-[#1B44E8]/90"
+                    >
+                        Jelajahi Beranda Film
                     </button>
                 </div>
 
@@ -981,7 +1088,12 @@ onUnmounted(() => {
                                 <h1
                                     class="mb-3 text-3xl font-semibold tracking-[-0.03em] text-[#F2EFEA] md:text-[48px] md:leading-[1.1]"
                                 >
-                                    {{ activeSpotlight.title }}
+                                    <Link
+                                        :href="`/films/${activeSpotlight.id}`"
+                                        class="transition-colors hover:text-white"
+                                    >
+                                        {{ activeSpotlight.title }}
+                                    </Link>
                                 </h1>
 
                                 <!-- Metadata -->
@@ -1002,16 +1114,13 @@ onUnmounted(() => {
 
                                 <!-- Buttons Row -->
                                 <div class="flex items-center gap-3">
-                                    <button
-                                        type="button"
-                                        @click="
-                                            watchModalFilm = activeSpotlight
-                                        "
+                                    <Link
+                                        :href="`/films/${activeSpotlight.id}`"
                                         class="flex h-[42px] cursor-pointer items-center gap-2 rounded-[10px] bg-[#F2EFEA] px-5 text-[13px] font-medium text-[#0E0F11] shadow-[0_1px_2px_rgba(0,0,0,0.15)] transition-colors duration-150 hover:bg-white"
                                     >
                                         <Play class="h-4 w-4 fill-current" />
                                         <span>Watch now</span>
-                                    </button>
+                                    </Link>
 
                                     <button
                                         type="button"
@@ -1033,6 +1142,13 @@ onUnmounted(() => {
                                                 : 'Add to list'
                                         }}</span>
                                     </button>
+
+                                    <Link
+                                        :href="`/films/${activeSpotlight.id}`"
+                                        class="flex h-[42px] cursor-pointer items-center gap-2 rounded-[10px] border border-[rgba(242,239,234,0.12)] bg-white/5 px-4 text-[13px] font-medium text-[#F2EFEA] transition-colors duration-150 hover:bg-white/10 hover:border-[#1B44E8]"
+                                    >
+                                        <span>Detail Film</span>
+                                    </Link>
                                 </div>
                             </div>
                         </Transition>
@@ -1091,11 +1207,11 @@ onUnmounted(() => {
                     <div
                         class="custom-scroll scroll-reveal scroll-delay-1 flex snap-x gap-4 overflow-x-auto pb-4"
                     >
-                        <div
+                        <Link
                             v-for="(item, idx) in filteredContinueWatching"
                             :key="item.id"
-                            @click="watchModalFilm = item"
-                            class="group w-[280px] flex-none cursor-pointer snap-start transition-transform duration-300 hover:-translate-y-1"
+                            :href="`/films/${item.id}`"
+                            class="group block w-[280px] flex-none cursor-pointer snap-start transition-transform duration-300 hover:-translate-y-1"
                         >
                             <div
                                 class="relative mb-2.5 aspect-video overflow-hidden rounded-[12px] border border-[rgba(242,239,234,0.10)] bg-[#17181B] transition-all duration-300 group-hover:border-[#1B44E8]"
@@ -1144,7 +1260,7 @@ onUnmounted(() => {
                                     {{ item.left }}
                                 </span>
                             </div>
-                        </div>
+                        </Link>
                     </div>
                 </section>
 
@@ -1173,11 +1289,11 @@ onUnmounted(() => {
                     <div
                         class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-5 lg:grid-cols-6"
                     >
-                        <div
+                        <Link
                             v-for="(item, idx) in filteredPopularWeekly"
                             :key="item.id"
-                            @click="watchModalFilm = item"
-                            class="scroll-reveal group cursor-pointer transition-all duration-300 hover:-translate-y-1.5"
+                            :href="`/films/${item.id}`"
+                            class="scroll-reveal group block cursor-pointer transition-all duration-300 hover:-translate-y-1.5"
                             :class="`scroll-delay-${(idx % 6) + 1}`"
                         >
                             <div
@@ -1216,7 +1332,7 @@ onUnmounted(() => {
                                     <span>{{ item.rating }}</span>
                                 </div>
                             </div>
-                        </div>
+                        </Link>
                     </div>
                 </section>
 
@@ -1245,11 +1361,11 @@ onUnmounted(() => {
                     <div
                         class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-5 lg:grid-cols-6"
                     >
-                        <div
+                        <Link
                             v-for="(item, idx) in filteredNewReleases"
                             :key="item.id"
-                            @click="watchModalFilm = item"
-                            class="scroll-reveal group cursor-pointer transition-all duration-300 hover:-translate-y-1.5"
+                            :href="`/films/${item.id}`"
+                            class="scroll-reveal group block cursor-pointer transition-all duration-300 hover:-translate-y-1.5"
                             :class="`scroll-delay-${(idx % 6) + 1}`"
                         >
                             <div
@@ -1286,12 +1402,16 @@ onUnmounted(() => {
                                     <span>{{ item.rating }}</span>
                                 </div>
                             </div>
-                        </div>
+                        </Link>
                     </div>
                 </section>
 
                 <!-- [6] JELAJAHI FILM (3 Rows of 6 Columns = 18 Posters) -->
-                <section id="explore-section" class="mb-16">
+                <section
+                    id="explore-section"
+                    v-if="filteredExploreFilms.length > 0"
+                    class="mb-16"
+                >
                     <div
                         class="scroll-reveal mb-5 flex items-center justify-between"
                     >
@@ -1308,11 +1428,11 @@ onUnmounted(() => {
                     <div
                         class="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-6"
                     >
-                        <div
+                        <Link
                             v-for="(item, idx) in filteredExploreFilms"
                             :key="item.id"
-                            @click="watchModalFilm = item"
-                            class="scroll-reveal group cursor-pointer transition-all duration-300 hover:-translate-y-1.5"
+                            :href="`/films/${item.id}`"
+                            class="scroll-reveal group block cursor-pointer transition-all duration-300 hover:-translate-y-1.5"
                             :class="`scroll-delay-${(idx % 6) + 1}`"
                         >
                             <div
@@ -1334,7 +1454,7 @@ onUnmounted(() => {
                             >
                                 {{ item.year }} · {{ item.genre }}
                             </div>
-                        </div>
+                        </Link>
                     </div>
 
                     <!-- Centered quiet Load More link -->
@@ -1358,102 +1478,6 @@ onUnmounted(() => {
                 </section>
             </div>
         </main>
-
-        <!-- WATCH / PREVIEW MODAL -->
-        <div
-            v-if="watchModalFilm"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
-            @click.self="watchModalFilm = null"
-        >
-            <div
-                class="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-[rgba(242,239,234,0.12)] bg-[#17181B] shadow-2xl"
-            >
-                <div
-                    class="relative aspect-video w-full overflow-hidden bg-black"
-                >
-                    <img
-                        :src="watchModalFilm.image"
-                        :alt="watchModalFilm.title"
-                        class="h-full w-full object-cover opacity-80"
-                    />
-                    <div
-                        class="absolute inset-0 bg-gradient-to-t from-[#17181B] via-transparent to-transparent"
-                    ></div>
-                    <button
-                        type="button"
-                        @click="watchModalFilm = null"
-                        class="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/90"
-                    >
-                        <X class="h-4 w-4" />
-                    </button>
-                    <div
-                        class="absolute inset-0 flex items-center justify-center"
-                    >
-                        <div
-                            class="flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-[#1B44E8] text-white shadow-xl transition-transform hover:scale-110"
-                        >
-                            <Play class="ml-1 h-7 w-7 fill-current" />
-                        </div>
-                    </div>
-                </div>
-
-                <div class="p-6">
-                    <div class="flex items-start justify-between gap-4">
-                        <div>
-                            <h2 class="text-2xl font-semibold text-white">
-                                {{ watchModalFilm.title }}
-                            </h2>
-                            <p class="mt-1 text-xs text-[#8C8C90]">
-                                {{ watchModalFilm.year }} ·
-                                {{ watchModalFilm.genre || 'Film Sinematik' }}
-                            </p>
-                        </div>
-                        <button
-                            type="button"
-                            @click="toggleWatchlist(watchModalFilm.id)"
-                            class="flex items-center gap-1.5 rounded-lg border border-[rgba(242,239,234,0.15)] bg-white/5 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/10"
-                        >
-                            <BookmarkCheck
-                                v-if="isBookmarked(watchModalFilm.id)"
-                                class="h-4 w-4 text-[#1B44E8]"
-                            />
-                            <Bookmark v-else class="h-4 w-4" />
-                            <span>{{
-                                isBookmarked(watchModalFilm.id)
-                                    ? 'Tersimpan'
-                                    : 'Simpan'
-                            }}</span>
-                        </button>
-                    </div>
-
-                    <p class="mt-4 text-sm leading-relaxed text-[#8C8C90]">
-                        {{
-                            watchModalFilm.synopsis ||
-                            'Tayangan sinematik eksklusif Watoon dengan visual 4K HDR dan komposisi audio beresolusi tinggi.'
-                        }}
-                    </p>
-
-                    <div
-                        class="mt-6 flex items-center justify-end gap-3 border-t border-[rgba(242,239,234,0.08)] pt-4"
-                    >
-                        <button
-                            type="button"
-                            @click="watchModalFilm = null"
-                            class="rounded-lg border border-[rgba(242,239,234,0.15)] px-4 py-2 text-xs font-medium text-[#F2EFEA] hover:bg-white/5"
-                        >
-                            Tutup
-                        </button>
-                        <button
-                            type="button"
-                            class="flex items-center gap-2 rounded-lg bg-[#1B44E8] px-5 py-2 text-xs font-medium text-white hover:bg-[#1B44E8]/90"
-                        >
-                            <Play class="h-3.5 w-3.5 fill-current" />
-                            <span>Mulai Memutar</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- WATOON PRO MODAL -->
         <div
