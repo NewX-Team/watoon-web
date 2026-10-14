@@ -19,8 +19,17 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user();
+
+        if ($user?->isUser()) {
+            return Inertia::render('settings/UserSettings', [
+                'mustVerifyEmail' => $user instanceof MustVerifyEmail,
+                'status' => $request->session()->get('status'),
+            ]);
+        }
+
         return Inertia::render('settings/Profile', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
         ]);
     }
