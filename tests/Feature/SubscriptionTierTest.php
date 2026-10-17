@@ -64,3 +64,25 @@ test('subscription tier update validates tier field', function () {
 
     $response->assertSessionHasErrors('tier');
 });
+
+test('pricing page can be rendered for guests and users', function () {
+    $guestResponse = $this->get(route('pricing'));
+    $guestResponse->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('subscription/Pricing')
+            ->where('currentTier', 'free')
+        );
+
+    $user = User::factory()->vip()->create();
+    $userResponse = $this->actingAs($user)->get(route('pricing'));
+    $userResponse->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('subscription/Pricing')
+            ->where('currentTier', 'vip')
+        );
+});
+
+test('pricing aliases redirect to pricing route', function () {
+    $this->get('/subscription/pricing')->assertRedirect(route('pricing'));
+    $this->get('/plans')->assertRedirect(route('pricing'));
+});

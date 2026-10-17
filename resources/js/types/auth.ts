@@ -7,6 +7,7 @@ export type User = {
     phone?: string | null;
     role: 'user' | 'kreator' | 'admin';
     tier?: 'free' | 'pro' | 'vip';
+    subscription_expires_at?: string | null;
     avatar?: string;
     email_verified_at: string | null;
     created_at: string;
