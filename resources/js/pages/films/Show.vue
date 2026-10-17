@@ -17,7 +17,7 @@ import {
     X,
 } from '@lucide/vue';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { dashboard, logout } from '@/routes';
+import { dashboard, logout, pricing } from '@/routes';
 import { edit } from '@/routes/profile';
 import type { User } from '@/types/auth';
 
@@ -79,6 +79,24 @@ const userMenuRef = ref<HTMLElement | null>(null);
 const activeTab = ref<'home' | 'favorite' | 'subscribe'>('home');
 const mediaType = ref<'film' | 'novel'>('film');
 const isProModalOpen = ref(false);
+
+const normalizeTier = (val?: string | null): 'FREE' | 'PRO' | 'VIP' => {
+    if (!val) return 'FREE';
+    const up = val.toUpperCase();
+    if (up === 'VIP') return 'VIP';
+    if (up === 'PRO') return 'PRO';
+    return 'FREE';
+};
+
+const getInitialTier = (): 'FREE' | 'PRO' | 'VIP' => {
+    if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('watoon_user_tier');
+        if (stored) return normalizeTier(stored);
+    }
+    return normalizeTier(currentUser.value?.tier);
+};
+
+const currentUserTier = ref<'FREE' | 'PRO' | 'VIP'>(getInitialTier());
 const userMenuOpen = ref(false);
 const isScrolled = ref(false);
 const isReadMore = ref(false);
@@ -403,14 +421,21 @@ onUnmounted(() => {
                         </button>
                     </div>
 
-                    <!-- PRO Plan Badge -->
-                    <button
-                        type="button"
-                        @click="isProModalOpen = true"
-                        class="mr-4 flex h-[26px] cursor-pointer items-center justify-center rounded-[8px] border border-[rgba(27,68,232,0.35)] bg-[rgba(27,68,232,0.14)] px-[10px] text-[11px] font-semibold tracking-[0.14em] text-[#7A9BFF] uppercase select-none transition-colors hover:bg-[rgba(27,68,232,0.20)]"
+                    <!-- Kasta Tier Badge -> Navigate to Pricing -->
+                    <Link
+                        :href="pricing.url()"
+                        class="mr-4 flex h-[26px] cursor-pointer items-center justify-center rounded-[8px] px-[10px] text-[11px] font-semibold tracking-[0.14em] uppercase transition-all select-none"
+                        :class="[
+                            currentUserTier === 'VIP'
+                                ? 'border border-[#D4B67A]/50 bg-[#D4B67A]/15 text-[#D4B67A] hover:bg-[#D4B67A]/25 shadow-[0_0_12px_rgba(212,182,122,0.15)]'
+                                : currentUserTier === 'PRO'
+                                ? 'border border-[rgba(27,68,232,0.35)] bg-[rgba(27,68,232,0.14)] text-[#7A9BFF] hover:bg-[rgba(27,68,232,0.22)] shadow-[0_0_12px_rgba(27,68,232,0.15)]'
+                                : 'border border-[rgba(242,239,234,0.15)] bg-[rgba(242,239,234,0.06)] text-[#A0A0A5] hover:text-[#F2EFEA] hover:border-[rgba(242,239,234,0.25)]'
+                        ]"
+                        :title="`Status Kasta: ${currentUserTier} (Klik untuk buka halaman paket langganan)`"
                     >
-                        PRO
-                    </button>
+                        {{ currentUserTier }}
+                    </Link>
 
                     <!-- User Avatar & Dropdown -->
                     <div ref="userMenuRef" class="relative">
@@ -471,17 +496,13 @@ onUnmounted(() => {
                                 </Link>
 
 
-                                <button
-                                    type="button"
-                                    @click="
-                                        isProModalOpen = true;
-                                        userMenuOpen = false;
-                                    "
+                                <Link
+                                    :href="pricing.url()"
                                     class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-[#F2EFEA] transition-colors hover:bg-white/[0.06]"
                                 >
                                     <Crown class="h-3.5 w-3.5 text-[#7A9BFF]" />
-                                    <span>Langganan Pro</span>
-                                </button>
+                                    <span>Paket Langganan & Kasta</span>
+                                </Link>
                             </div>
 
                             <div

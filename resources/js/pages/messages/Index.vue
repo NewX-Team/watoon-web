@@ -23,7 +23,7 @@ import {
     X,
 } from '@lucide/vue';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-import { dashboard, logout } from '@/routes';
+import { dashboard, logout, pricing } from '@/routes';
 import { edit } from '@/routes/profile';
 import tierRoute from '@/routes/subscription/tier';
 import type { User } from '@/types/auth';
@@ -881,10 +881,9 @@ const selectMediaType = (type: 'film' | 'novel') => {
                     </button>
                 </div>
 
-                <!-- Dynamic User Kasta Badge Chip (FREE / PRO / VIP) -->
-                <button
-                    type="button"
-                    @click="isKastaModalOpen = true"
+                <!-- Dynamic User Kasta Badge Chip (FREE / PRO / VIP) -> Navigate to Pricing -->
+                <Link
+                    :href="pricing.url()"
                     class="mr-4 flex h-[26px] cursor-pointer items-center justify-center gap-1.5 rounded-[8px] border px-2.5 text-[11px] font-semibold tracking-[0.12em] uppercase transition-all select-none"
                     :class="[
                         currentUserTier === 'VIP'
@@ -893,13 +892,13 @@ const selectMediaType = (type: 'film' | 'novel') => {
                             ? 'border-[rgba(27,68,232,0.35)] bg-[rgba(27,68,232,0.14)] text-[#7A9BFF] hover:bg-[rgba(27,68,232,0.22)] shadow-[0_0_12px_rgba(27,68,232,0.15)]'
                             : 'border-[rgba(242,239,234,0.12)] bg-[rgba(242,239,234,0.06)] text-[#8C8C90] hover:bg-[rgba(242,239,234,0.10)] hover:text-[#F2EFEA]'
                     ]"
-                    :title="`Kasta Anda saat ini: ${currentUserTier}. Klik untuk mengelola atau menguji kasta.`"
+                    :title="`Kasta Anda saat ini: ${currentUserTier}. Klik untuk buka halaman paket langganan.`"
                 >
                     <Crown v-if="currentUserTier === 'VIP'" class="w-3 h-3 text-[#D4B67A]" />
                     <Sparkles v-else-if="currentUserTier === 'PRO'" class="w-3 h-3 text-[#7A9BFF]" />
                     <span v-else class="w-1.5 h-1.5 rounded-full bg-[#8C8C90]"></span>
                     <span>{{ currentUserTier }}</span>
-                </button>
+                </Link>
 
                 <!-- User Avatar & Dropdown -->
                 <div class="relative">
@@ -954,13 +953,12 @@ const selectMediaType = (type: 'film' | 'novel') => {
                                     ></span>
                                     <span>Kasta {{ currentUserTier }}</span>
                                 </div>
-                                <button
-                                    type="button"
-                                    @click="isKastaModalOpen = true; userMenuOpen = false;"
+                                <Link
+                                    :href="pricing.url()"
                                     class="text-[10px] text-[#7A9BFF] hover:underline cursor-pointer"
                                 >
                                     Kelola
-                                </button>
+                                </Link>
                             </div>
                         </div>
 
@@ -973,17 +971,13 @@ const selectMediaType = (type: 'film' | 'novel') => {
                                 <span>Pengaturan Akun</span>
                             </Link>
 
-                            <button
-                                type="button"
-                                @click="
-                                    isKastaModalOpen = true;
-                                    userMenuOpen = false;
-                                "
+                            <Link
+                                :href="pricing.url()"
                                 class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-[#F2EFEA] transition-colors hover:bg-white/[0.06] cursor-pointer"
                             >
                                 <Crown class="h-3.5 w-3.5 text-[#7A9BFF]" />
-                                <span>Sistem Kasta (Free/Pro/VIP)</span>
-                            </button>
+                                <span>Paket Langganan & Kasta</span>
+                            </Link>
                         </div>
 
                         <div class="border-t border-[rgba(242,239,234,0.08)] pt-1">
@@ -1617,9 +1611,8 @@ const selectMediaType = (type: 'film' | 'novel') => {
                             </div>
                         </div>
 
-                        <button
-                            type="button"
-                            @click="openUpgradeModal(activeConversation.tier)"
+                        <Link
+                            :href="pricing.url({ query: { highlight: activeConversation.tier.toLowerCase() } })"
                             class="w-full md:w-auto px-5 py-2.5 rounded-xl font-medium text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shrink-0"
                             :class="[
                                 activeConversation.tier === 'VIP'
@@ -1630,7 +1623,7 @@ const selectMediaType = (type: 'film' | 'novel') => {
                             <Crown v-if="activeConversation.tier === 'VIP'" class="w-4 h-4" />
                             <Sparkles v-else class="w-4 h-4" />
                             <span>Upgrade ke {{ activeConversation.tier }}</span>
-                        </button>
+                        </Link>
                     </div>
                 </div>
 

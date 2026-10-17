@@ -29,7 +29,7 @@ import {
     X,
 } from '@lucide/vue';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-import { dashboard, logout } from '@/routes';
+import { dashboard, logout, pricing } from '@/routes';
 import messages from '@/routes/messages';
 import { edit } from '@/routes/profile';
 import tierRoute from '@/routes/subscription/tier';
@@ -1903,10 +1903,9 @@ onUnmounted(() => {
                         </button>
                     </div>
 
-                    <!-- Kasta Tier Badge -->
-                    <button
-                        type="button"
-                        @click="isProModalOpen = true"
+                    <!-- Kasta Tier Badge -> Navigate to Pricing Page -->
+                    <Link
+                        :href="pricing.url()"
                         class="mr-4 flex h-[26px] cursor-pointer items-center justify-center rounded-[8px] px-[10px] text-[11px] font-semibold tracking-[0.14em] uppercase transition-all select-none"
                         :class="[
                             currentUserTier === 'VIP'
@@ -1915,10 +1914,10 @@ onUnmounted(() => {
                                 ? 'border border-[rgba(27,68,232,0.35)] bg-[rgba(27,68,232,0.14)] text-[#7A9BFF] hover:bg-[rgba(27,68,232,0.22)] shadow-[0_0_12px_rgba(27,68,232,0.15)]'
                                 : 'border border-[rgba(242,239,234,0.15)] bg-[rgba(242,239,234,0.06)] text-[#A0A0A5] hover:text-[#F2EFEA] hover:border-[rgba(242,239,234,0.25)]'
                         ]"
-                        :title="`Status Kasta: ${currentUserTier} (Klik untuk kelola)`"
+                        :title="`Status Kasta: ${currentUserTier} (Klik untuk buka halaman paket langganan)`"
                     >
                         {{ currentUserTier }}
-                    </button>
+                    </Link>
 
                     <!-- User Avatar & Dropdown -->
                     <div class="relative">
@@ -1975,17 +1974,13 @@ onUnmounted(() => {
                                 </Link>
 
 
-                                <button
-                                    type="button"
-                                    @click="
-                                        isProModalOpen = true;
-                                        userMenuOpen = false;
-                                    "
+                                <Link
+                                    :href="pricing.url()"
                                     class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-[#F2EFEA] transition-colors hover:bg-white/[0.06]"
                                 >
                                     <Crown class="h-3.5 w-3.5 text-[#7A9BFF]" />
-                                    <span>Langganan Pro</span>
-                                </button>
+                                    <span>Paket Langganan & Kasta</span>
+                                </Link>
                             </div>
 
                             <div

@@ -23,7 +23,7 @@ import {
     X,
 } from '@lucide/vue';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { dashboard, logout } from '@/routes';
+import { dashboard, logout, pricing } from '@/routes';
 import { destroy as destroyProfile, update as updateProfile } from '@/routes/profile';
 import { update as updatePassword } from '@/routes/user-password';
 import type { User } from '@/types/auth';
@@ -35,6 +35,24 @@ defineProps<{
 
 const page = usePage<{ auth: { user: User } }>();
 const currentUser = computed(() => page.props.auth.user);
+
+const normalizeTier = (val?: string | null): 'FREE' | 'PRO' | 'VIP' => {
+    if (!val) return 'FREE';
+    const up = val.toUpperCase();
+    if (up === 'VIP') return 'VIP';
+    if (up === 'PRO') return 'PRO';
+    return 'FREE';
+};
+
+const getInitialTier = (): 'FREE' | 'PRO' | 'VIP' => {
+    if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('watoon_user_tier');
+        if (stored) return normalizeTier(stored);
+    }
+    return normalizeTier(currentUser.value?.tier);
+};
+
+const currentUserTier = ref<'FREE' | 'PRO' | 'VIP'>(getInitialTier());
 
 // Active section tab
 const activeTab = ref<'profile' | 'account' | 'subscription' | 'preferences' | 'privacy'>('profile');
@@ -303,10 +321,21 @@ const downloadInvoice = (date: string) => {
                         <button class="px-2.5 py-1 rounded-[6px] text-[#8C8C90] hover:text-[#F2EFEA] transition-colors" type="button">Novels</button>
                     </div>
 
-                    <!-- User Tier Chip -->
-                    <div class="hidden lg:flex items-center px-2.5 py-1 rounded-[6px] bg-[rgba(27,68,232,0.18)] border border-[rgba(27,68,232,0.45)] text-[#7A9BFF] text-[11px] font-semibold tracking-wide uppercase">
-                        PRO PLAN
-                    </div>
+                    <!-- User Tier Chip -> Navigate to Pricing -->
+                    <Link
+                        :href="pricing.url()"
+                        class="hidden lg:flex items-center px-2.5 py-1 rounded-[6px] text-[11px] font-semibold tracking-wide uppercase transition-all select-none hover:opacity-90"
+                        :class="[
+                            currentUserTier === 'VIP'
+                                ? 'border border-[#D4B67A]/50 bg-[#D4B67A]/15 text-[#D4B67A]'
+                                : currentUserTier === 'PRO'
+                                ? 'border border-[rgba(27,68,232,0.45)] bg-[rgba(27,68,232,0.18)] text-[#7A9BFF]'
+                                : 'border border-[rgba(242,239,234,0.15)] bg-[rgba(242,239,234,0.06)] text-[#A0A0A5]'
+                        ]"
+                        :title="`Status Kasta: ${currentUserTier} (Klik untuk buka halaman paket langganan)`"
+                    >
+                        {{ currentUserTier }} PLAN
+                    </Link>
 
                     <!-- User Avatar with Settings Active Indicator -->
                     <div class="relative pl-1">
