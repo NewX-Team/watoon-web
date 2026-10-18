@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\SubscriptionStatus;
 use App\Enums\UserTier;
+use App\Services\MidtransService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -17,6 +19,28 @@ class SubscriptionTierController extends Controller
     public function pricing(Request $request): Response
     {
         $user = $request->user();
+
+        // If user is currently without active subscription, check if they have a pending order recently settled on Midtrans
+        if ($user && ! $user->hasActiveSubscription()) {
+            $latestPending = $user->subscriptions()
+                ->where('status', SubscriptionStatus::Pending)
+                ->where('created_at', '>=', now()->subHours(24))
+                ->latest()
+                ->first();
+
+            if ($latestPending) {
+                $midtransService = app(MidtransService::class);
+                $midtransStatus = $midtransService->getTransactionStatus($latestPending->order_id);
+                if ($midtransStatus && isset($midtransStatus['transaction_status'])) {
+                    $status = $midtransStatus['transaction_status'];
+                    $fraud = $midtransStatus['fraud_status'] ?? 'accept';
+                    if ($status === 'settlement' || ($status === 'capture' && $fraud === 'accept')) {
+                        $midtransService->processNotification($midtransStatus, skipSignature: true);
+                        $user = $user->fresh();
+                    }
+                }
+            }
+        }
 
         return Inertia::render('subscription/Pricing', [
             'currentTier' => $user?->effectiveTier()->value ?? 'free',
