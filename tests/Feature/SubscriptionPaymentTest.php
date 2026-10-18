@@ -299,6 +299,8 @@ test('midtrans webhook validates signature when server key is configured', funct
     $validResponse->assertOk();
     $user->refresh();
     expect($user->tier)->toBe(UserTier::Pro);
+
+    Config::set('services.midtrans.server_key', null);
 });
 
 test('simulation endpoint allows developer to activate subscription in local mock mode', function () {
@@ -325,4 +327,64 @@ test('simulation endpoint allows developer to activate subscription in local moc
     $user->refresh();
     expect($user->tier)->toBe(UserTier::Vip)
         ->and($user->hasActiveSubscription())->toBeTrue();
+});
+
+test('confirm endpoint activates pending subscription and upgrades user tier', function () {
+    $user = User::factory()->free()->create();
+    $subscription = Subscription::create([
+        'user_id' => $user->id,
+        'order_id' => 'WTN-CONFIRM-ORDER-101',
+        'tier' => UserTier::Pro,
+        'billing_cycle' => BillingCycle::Monthly,
+        'gross_amount' => 80000,
+        'status' => SubscriptionStatus::Pending,
+    ]);
+
+    $response = $this->actingAs($user)->postJson(route('subscription.orders.confirm', ['orderId' => $subscription->order_id]), [
+        'transaction_status' => 'settlement',
+        'status_code' => '200',
+        'payment_type' => 'credit_card',
+    ]);
+
+    $response->assertOk()
+        ->assertJson([
+            'status' => 'success',
+            'order_id' => 'WTN-CONFIRM-ORDER-101',
+            'tier' => 'pro',
+            'user_tier' => 'pro',
+            'has_active_subscription' => true,
+        ]);
+
+    $user->refresh();
+    $subscription->refresh();
+
+    expect($user->tier)->toBe(UserTier::Pro)
+        ->and($user->hasActiveSubscription())->toBeTrue()
+        ->and($subscription->status)->toBe(SubscriptionStatus::Settlement);
+});
+
+test('status endpoint returns user tier and active subscription state', function () {
+    $user = User::factory()->pro()->create([
+        'subscription_expires_at' => now()->addDays(30),
+    ]);
+    $subscription = Subscription::create([
+        'user_id' => $user->id,
+        'order_id' => 'WTN-STATUS-ORDER-102',
+        'tier' => UserTier::Pro,
+        'billing_cycle' => BillingCycle::Monthly,
+        'gross_amount' => 80000,
+        'status' => SubscriptionStatus::Settlement,
+    ]);
+
+    $response = $this->actingAs($user)->getJson(route('subscription.orders.status', ['orderId' => $subscription->order_id]));
+
+    $response->assertOk()
+        ->assertJson([
+            'order_id' => 'WTN-STATUS-ORDER-102',
+            'status' => 'settlement',
+            'is_paid' => true,
+            'tier' => 'pro',
+            'user_tier' => 'pro',
+            'has_active_subscription' => true,
+        ]);
 });

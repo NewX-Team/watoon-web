@@ -28,6 +28,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('subscription/tier', [SubscriptionTierController::class, 'update'])->name('subscription.tier.update');
     Route::post('subscription/checkout', [SubscriptionPaymentController::class, 'checkout'])->name('subscription.checkout');
     Route::get('subscription/orders/{orderId}/status', [SubscriptionPaymentController::class, 'status'])->name('subscription.orders.status');
+    Route::post('subscription/orders/{orderId}/confirm', [SubscriptionPaymentController::class, 'confirm'])->name('subscription.orders.confirm');
     Route::post('subscription/orders/{orderId}/simulate', [SubscriptionPaymentController::class, 'simulate'])->name('subscription.orders.simulate');
     Route::get('films/{id}', [FilmController::class, 'show'])->name('films.show');
     Route::get('films/{film}/episodes/{episode}', [FilmController::class, 'watchEpisode'])->name('films.episodes.watch');
