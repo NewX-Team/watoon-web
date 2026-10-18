@@ -114,11 +114,25 @@ const normalizeTier = (val?: string | null): KastaTier => {
 };
 
 const getInitialTier = (): KastaTier => {
+    if (props.currentTier) {
+        const t = normalizeTier(props.currentTier);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('watoon_user_tier', t);
+        }
+        return t;
+    }
+    if (currentUser.value?.tier) {
+        const t = normalizeTier(currentUser.value.tier);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('watoon_user_tier', t);
+        }
+        return t;
+    }
     if (typeof window !== 'undefined') {
         const stored = localStorage.getItem('watoon_user_tier');
         if (stored) return normalizeTier(stored);
     }
-    return normalizeTier(currentUser.value?.tier || props.currentTier);
+    return 'FREE';
 };
 
 const currentUserTier = ref<KastaTier>(getInitialTier());
@@ -130,12 +144,18 @@ const mediaType = ref<'film' | 'novel'>('film');
 const isScrolled = ref(false);
 
 watch(
-    () => currentUser.value?.tier,
-    (newTier) => {
-        if (newTier) {
-            currentUserTier.value = normalizeTier(newTier);
+    [() => currentUser.value?.tier, () => props.currentTier],
+    ([newAuthTier, newPropTier]) => {
+        const tierToUse = newPropTier || newAuthTier;
+        if (tierToUse) {
+            const normalized = normalizeTier(tierToUse);
+            currentUserTier.value = normalized;
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('watoon_user_tier', normalized);
+            }
         }
     },
+    { immediate: true },
 );
 
 // Billing Cycle Toggle (Monthly vs Yearly)
@@ -437,29 +457,111 @@ const choosePlan = async (targetTier: KastaTier) => {
         // Check if real Midtrans Snap JS is loaded on window
         if (!data.is_mock && typeof window !== 'undefined' && window.snap) {
             window.snap.pay(data.snap_token, {
-                onSuccess: () => {
-                    isProcessingPayment.value = false;
-                    pendingPaymentTier.value = null;
-                    router.reload({
-                        onSuccess: () => {
-                            launchConfetti(targetTier);
-                            triggerToast(`Pembayaran berhasil! Kasta akun Anda sekarang ${targetTier}.`);
-                        },
-                    });
+                onSuccess: async (result: any) => {
+                    isProcessingPayment.value = true;
+                    pendingPaymentTier.value = targetTier;
+
+                    try {
+                        // 1. Immediately confirm with the backend and verify with Midtrans
+                        const confirmResponse = await fetch(orders.confirm.url({ orderId: data.order_id }), {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': getCsrfToken(),
+                                'X-XSRF-TOKEN': getCsrfToken(),
+                            },
+                            body: JSON.stringify(result || {}),
+                        });
+
+                        const confirmData = await confirmResponse.json().catch(() => ({}));
+                        const confirmedTier = (confirmData.user_tier || targetTier).toUpperCase() as KastaTier;
+
+                        // 2. Instantly update UI state before & after reload
+                        currentUserTier.value = confirmedTier;
+                        highlightedTier.value = confirmedTier;
+                        if (typeof window !== 'undefined') {
+                            localStorage.setItem('watoon_user_tier', confirmedTier);
+                        }
+
+                        // 3. Reload Inertia page so all shared props (auth.user, currentTier) update
+                        router.reload({
+                            preserveScroll: true,
+                            onSuccess: () => {
+                                currentUserTier.value = confirmedTier;
+                                highlightedTier.value = confirmedTier;
+                                if (typeof window !== 'undefined') {
+                                    localStorage.setItem('watoon_user_tier', confirmedTier);
+                                }
+                                isProcessingPayment.value = false;
+                                pendingPaymentTier.value = null;
+                                launchConfetti(confirmedTier);
+                                triggerToast(`Pembayaran sah & berhasil! Kasta akun Anda sekarang ${confirmedTier}.`);
+                                nextTick(() => {
+                                    scrollToSection('section-plans');
+                                });
+                            },
+                            onError: () => {
+                                isProcessingPayment.value = false;
+                                pendingPaymentTier.value = null;
+                            },
+                        });
+                    } catch {
+                        isProcessingPayment.value = false;
+                        pendingPaymentTier.value = null;
+                        triggerToast('Pembayaran berhasil diproses. Memuat ulang kasta...');
+                        router.reload({ preserveScroll: true });
+                    }
                 },
-                onPending: () => {
+                onPending: async (result: any) => {
+                    try {
+                        await fetch(orders.confirm.url({ orderId: data.order_id }), {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': getCsrfToken(),
+                                'X-XSRF-TOKEN': getCsrfToken(),
+                            },
+                            body: JSON.stringify(result || {}),
+                        });
+                    } catch {}
                     isProcessingPayment.value = false;
                     pendingPaymentTier.value = null;
-                    triggerToast('Menunggu pembayaran diselesaikan...');
+                    triggerToast('Menunggu pembayaran diselesaikan. Kasta akan aktif otomatis setelah lunas.');
                 },
                 onError: () => {
                     isProcessingPayment.value = false;
                     pendingPaymentTier.value = null;
                     triggerToast('Pembayaran gagal atau dibatalkan.');
                 },
-                onClose: () => {
+                onClose: async () => {
                     isProcessingPayment.value = false;
                     pendingPaymentTier.value = null;
+                    // Check if payment was completed right before close
+                    try {
+                        const checkRes = await fetch(orders.status.url({ orderId: data.order_id }), {
+                            headers: {
+                                'Accept': 'application/json',
+                            },
+                        });
+                        const checkData = await checkRes.json();
+                        if (checkData.is_paid) {
+                            const newTier = (checkData.user_tier || targetTier).toUpperCase() as KastaTier;
+                            currentUserTier.value = newTier;
+                            highlightedTier.value = newTier;
+                            if (typeof window !== 'undefined') {
+                                localStorage.setItem('watoon_user_tier', newTier);
+                            }
+                            router.reload({
+                                preserveScroll: true,
+                                onSuccess: () => {
+                                    launchConfetti(newTier);
+                                    triggerToast(`Pembayaran sah & berhasil! Kasta akun Anda sekarang ${newTier}.`);
+                                },
+                            });
+                        }
+                    } catch {}
                 },
             });
         } else {
@@ -499,14 +601,31 @@ const completeSimulation = async () => {
             return;
         }
 
+        const simData = await response.json().catch(() => ({}));
         showSimulationModal.value = false;
         currentMockOrder.value = null;
         isSimulatingSettlement.value = false;
 
+        const confirmedTier = (simData.user_tier || targetTier).toUpperCase() as KastaTier;
+        currentUserTier.value = confirmedTier;
+        highlightedTier.value = confirmedTier;
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('watoon_user_tier', confirmedTier);
+        }
+
         router.reload({
+            preserveScroll: true,
             onSuccess: () => {
-                launchConfetti(targetTier);
-                triggerToast(`Pembayaran simulasi berhasil! Kasta akun Anda sekarang ${targetTier}.`);
+                currentUserTier.value = confirmedTier;
+                highlightedTier.value = confirmedTier;
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('watoon_user_tier', confirmedTier);
+                }
+                launchConfetti(confirmedTier);
+                triggerToast(`Pembayaran simulasi sah & berhasil! Kasta akun Anda sekarang ${confirmedTier}.`);
+                nextTick(() => {
+                    scrollToSection('section-plans');
+                });
             },
         });
     } catch {
@@ -1186,20 +1305,25 @@ onUnmounted(() => {
                         </button>
                     </div>
 
-                    <!-- Kasta Tier Badge (Active Plan) -->
-                    <div
-                        class="flex h-[26px] items-center justify-center rounded-[8px] px-[10px] text-[11px] font-semibold tracking-[0.14em] uppercase transition-all select-none"
+                    <!-- Kasta Tier Badge (Active Plan Pill next to avatar) -->
+                    <button
+                        type="button"
+                        @click="scrollToSection('section-plans')"
+                        class="flex h-[28px] cursor-pointer items-center justify-center gap-1.5 rounded-[8px] px-3 text-[11px] font-bold tracking-[0.14em] uppercase transition-all select-none hover:scale-105 active:scale-95"
                         :class="[
                             currentUserTier === 'VIP'
-                                ? 'border border-[#D4B67A]/50 bg-[#D4B67A]/15 text-[#D4B67A] shadow-[0_0_12px_rgba(212,182,122,0.15)]'
+                                ? 'border border-[#D4B67A]/60 bg-[#D4B67A]/20 text-[#D4B67A] shadow-[0_0_16px_rgba(212,182,122,0.3)] hover:bg-[#D4B67A]/30'
                                 : currentUserTier === 'PRO'
-                                ? 'border border-[rgba(27,68,232,0.35)] bg-[rgba(27,68,232,0.14)] text-[#7A9BFF] shadow-[0_0_12px_rgba(27,68,232,0.15)]'
-                                : 'border border-[rgba(242,239,234,0.15)] bg-[rgba(242,239,234,0.06)] text-[#A0A0A5]'
+                                ? 'border border-[#1B44E8]/60 bg-[#1B44E8]/20 text-[#7A9BFF] shadow-[0_0_16px_rgba(27,68,232,0.3)] hover:bg-[#1B44E8]/30'
+                                : 'border border-[rgba(242,239,234,0.18)] bg-[rgba(242,239,234,0.07)] text-[#A0A0A5] hover:text-[#F2EFEA] hover:border-white/30'
                         ]"
-                        :title="`Kasta Anda Saat Ini: ${currentUserTier}`"
+                        :title="`Kasta Anda Saat Ini: ${currentUserTier} (Klik untuk lihat paket Anda)`"
                     >
-                        {{ currentUserTier }}
-                    </div>
+                        <Crown v-if="currentUserTier === 'VIP'" class="w-3.5 h-3.5 text-[#D4B67A]" />
+                        <Sparkles v-else-if="currentUserTier === 'PRO'" class="w-3.5 h-3.5 text-[#7A9BFF]" />
+                        <span v-else class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        <span>{{ currentUserTier }}</span>
+                    </button>
 
                     <!-- User Avatar & Dropdown -->
                     <div class="relative">
@@ -1338,7 +1462,7 @@ onUnmounted(() => {
                 <div v-if="currentUser" class="mt-8 max-w-[840px] mx-auto animate-fadeIn text-left">
                     <!-- Active Paid Subscription (PRO or VIP) -->
                     <div
-                        v-if="props.hasActiveSubscription"
+                        v-if="currentUserTier !== 'FREE' || props.hasActiveSubscription"
                         class="relative overflow-hidden rounded-2xl border p-5 backdrop-blur-xl transition-all duration-300"
                         :class="
                             currentUserTier === 'VIP'
@@ -1433,11 +1557,17 @@ onUnmounted(() => {
                     <div
                         class="p-8 sm:p-9 flex flex-col justify-between relative bg-[#0E0F11] transition-all duration-300 hover:bg-white/[0.015] group/card"
                         :class="[
-                            currentUserTier === 'FREE' ? 'ring-1 ring-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]' : '',
-                            highlightedTier === 'FREE' ? 'ring-2 ring-white/60 animate-pulse' : ''
+                            currentUserTier === 'FREE' ? 'ring-2 ring-emerald-500/50 shadow-[0_0_35px_rgba(52,211,153,0.14)] bg-gradient-to-b from-white/[0.04] to-[#0E0F11]' : '',
+                            highlightedTier === 'FREE' ? 'ring-2 ring-emerald-400 animate-pulse' : ''
                         ]"
                     >
                         <div>
+                            <!-- Active Status Overline if User is FREE -->
+                            <div v-if="currentUserTier === 'FREE'" class="mb-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.25)] animate-fadeIn">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span>Kasta Anda Saat Ini (Aktif)</span>
+                            </div>
+
                             <!-- Tier Header -->
                             <div class="flex items-center justify-between">
                                 <span class="text-[19px] font-semibold text-[#F2EFEA]">Free</span>
@@ -1532,16 +1662,25 @@ onUnmounted(() => {
 
                     <!-- ================= PLAN 2: PRO (RECOMMENDED) ================= -->
                     <div
-                        class="p-8 sm:p-9 flex flex-col justify-between relative bg-gradient-to-b from-[rgba(27,68,232,0.08)] via-[rgba(27,68,232,0.02)] to-transparent border-t-2 border-t-[#1B44E8] transition-all duration-300 hover:shadow-[0_12px_45px_rgba(27,68,232,0.22)] group/card"
+                        class="p-8 sm:p-9 flex flex-col justify-between relative transition-all duration-300 hover:shadow-[0_12px_45px_rgba(27,68,232,0.25)] group/card"
                         :class="[
-                            currentUserTier === 'PRO' ? 'ring-1 ring-[#7A9BFF]/60 shadow-[0_0_30px_rgba(27,68,232,0.18)]' : '',
+                            currentUserTier === 'PRO'
+                                ? 'border-t-2 border-t-[#7A9BFF] ring-2 ring-[#7A9BFF] shadow-[0_0_45px_rgba(27,68,232,0.35)] bg-gradient-to-b from-[rgba(27,68,232,0.18)] via-[rgba(27,68,232,0.05)] to-[#0E0F11]'
+                                : 'bg-gradient-to-b from-[rgba(27,68,232,0.08)] via-[rgba(27,68,232,0.02)] to-transparent border-t-2 border-t-[#1B44E8]',
                             highlightedTier === 'PRO' ? 'ring-2 ring-[#7A9BFF] animate-pulse' : ''
                         ]"
                     >
                         <div>
                             <!-- Recommended Overline with Breathing Indicator -->
-                            <div class="flex items-center justify-between mb-1.5">
-                                <div class="flex items-center gap-1.5">
+                            <div class="flex items-center justify-between mb-2">
+                                <div v-if="currentUserTier === 'PRO'" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-[#1B44E8]/30 border border-[#1B44E8]/60 text-[#7A9BFF] shadow-[0_0_15px_rgba(27,68,232,0.4)] animate-fadeIn">
+                                    <span class="relative flex h-2 w-2">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7A9BFF] opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-2 w-2 bg-[#1B44E8]"></span>
+                                    </span>
+                                    <span>Kasta Anda Saat Ini (Aktif)</span>
+                                </div>
+                                <div v-else class="flex items-center gap-1.5">
                                     <span class="relative flex h-2 w-2">
                                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7A9BFF] opacity-75"></span>
                                         <span class="relative inline-flex rounded-full h-2 w-2 bg-[#1B44E8]"></span>
@@ -1659,13 +1798,27 @@ onUnmounted(() => {
 
                     <!-- ================= PLAN 3: VIP ================= -->
                     <div
-                        class="p-8 sm:p-9 flex flex-col justify-between relative bg-gradient-to-b from-[#D4B67A]/08 via-[#D4B67A]/02 to-transparent transition-all duration-300 hover:shadow-[0_12px_45px_rgba(212,182,122,0.20)] group/card"
+                        class="p-8 sm:p-9 flex flex-col justify-between relative transition-all duration-300 hover:shadow-[0_12px_45px_rgba(212,182,122,0.25)] group/card"
                         :class="[
-                            currentUserTier === 'VIP' ? 'ring-1 ring-[#D4B67A]/80 shadow-[0_0_30px_rgba(212,182,122,0.18)]' : '',
+                            currentUserTier === 'VIP'
+                                ? 'border-t-2 border-t-[#D4B67A] ring-2 ring-[#D4B67A] shadow-[0_0_45px_rgba(212,182,122,0.35)] bg-gradient-to-b from-[#D4B67A]/20 via-[#D4B67A]/05 to-[#0E0F11]'
+                                : 'bg-gradient-to-b from-[#D4B67A]/08 via-[#D4B67A]/02 to-transparent',
                             highlightedTier === 'VIP' ? 'ring-2 ring-[#D4B67A] animate-pulse' : ''
                         ]"
                     >
                         <div>
+                            <!-- VIP Overline Badge -->
+                            <div class="flex items-center justify-between mb-2">
+                                <div v-if="currentUserTier === 'VIP'" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase bg-[#D4B67A]/30 border border-[#D4B67A]/60 text-[#D4B67A] shadow-[0_0_15px_rgba(212,182,122,0.4)] animate-fadeIn">
+                                    <Crown class="w-3.5 h-3.5 text-[#D4B67A] animate-pulse" />
+                                    <span>Kasta Anda Saat Ini (Aktif)</span>
+                                </div>
+                                <div v-else class="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[#D4B67A] font-semibold">
+                                    <Crown class="w-3.5 h-3.5 text-[#D4B67A]" />
+                                    <span>KASTA TERTINGGI TANPA BATAS</span>
+                                </div>
+                            </div>
+
                             <!-- Tier Header with Crown Icon -->
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-1.5">
@@ -2783,16 +2936,33 @@ onUnmounted(() => {
                     </div>
 
                     <h3 class="text-xl font-bold text-white tracking-tight">
-                        Selamat! Kasta {{ celebratedTier }} Aktif!
+                        Selamat! Kasta {{ celebratedTier }} Berhasil Diaktifkan!
                     </h3>
 
                     <p class="text-xs text-[#8C8C90] mt-2 leading-relaxed max-w-sm">
-                        Akun Anda telah berhasil dinaikkan ke kasta <strong class="text-white">{{ celebratedTier }}</strong>. Semua fitur dan akses obrolan kreator yang sesuai kini siap Anda gunakan.
+                        Lencana akun Anda di dekat avatar profil kini telah resmi berubah menjadi <strong class="text-white">{{ celebratedTier }}</strong>. Semua fitur, hak tayang resolusi tinggi, dan akses obrolan kreator telah aktif secara instan.
                     </p>
 
-                    <div class="mt-6 flex flex-col sm:flex-row items-center gap-3 w-full">
+                    <!-- Active Badge Preview -->
+                    <div class="mt-4 px-4 py-2 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-between gap-3 w-full text-xs">
+                        <span class="text-[#8C8C90]">Lencana Baru Anda:</span>
+                        <span
+                            class="px-2.5 py-1 rounded-[6px] text-xs font-bold font-mono tracking-wider flex items-center gap-1.5"
+                            :class="
+                                celebratedTier === 'VIP'
+                                    ? 'bg-[#D4B67A]/25 border border-[#D4B67A]/50 text-[#D4B67A]'
+                                    : 'bg-[#1B44E8]/25 border border-[#1B44E8]/50 text-[#7A9BFF]'
+                            "
+                        >
+                            <Crown v-if="celebratedTier === 'VIP'" class="w-3.5 h-3.5" />
+                            <Sparkles v-else class="w-3.5 h-3.5" />
+                            <span>{{ celebratedTier }}</span>
+                        </span>
+                    </div>
+
+                    <div class="mt-6 flex flex-col gap-2.5 w-full">
                         <Link
-                            :href="messages.index.url()"
+                            :href="dashboard.url()"
                             class="w-full py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-95"
                             :class="[
                                 celebratedTier === 'VIP'
@@ -2800,17 +2970,27 @@ onUnmounted(() => {
                                     : 'bg-[#1B44E8] text-white hover:bg-[#1537C2]'
                             ]"
                         >
-                            <MessageSquare class="w-4 h-4" />
-                            <span>Mulai Chat dengan Kreator</span>
+                            <span>Kembali ke Dashboard Utama</span>
+                            <ArrowRight class="w-4 h-4" />
                         </Link>
 
-                        <button
-                            type="button"
-                            @click="showCelebrationModal = false"
-                            class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-medium text-white transition-colors cursor-pointer"
-                        >
-                            Tutup
-                        </button>
+                        <div class="flex items-center gap-2 w-full">
+                            <Link
+                                :href="messages.index.url()"
+                                class="flex-1 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-medium text-white flex items-center justify-center gap-1.5 transition-colors"
+                            >
+                                <MessageSquare class="w-3.5 h-3.5" />
+                                <span>Chat Kreator</span>
+                            </Link>
+
+                            <button
+                                type="button"
+                                @click="showCelebrationModal = false; scrollToSection('section-plans')"
+                                class="flex-1 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-[#8C8C90] hover:text-white transition-colors cursor-pointer"
+                            >
+                                Lihat Paket Saya
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

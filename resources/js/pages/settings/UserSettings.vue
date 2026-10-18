@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import {
+    AlertTriangle,
     BadgeCheck,
     Check,
     ChevronDown,
     ChevronRight,
+    Clock,
     CreditCard,
+    Crown,
     Download,
     Eye,
     EyeOff,
@@ -18,15 +21,17 @@ import {
     Shield,
     Sliders,
     Smartphone,
+    Sparkles,
     Trash2,
     User as UserIcon,
     X,
+    Zap,
 } from '@lucide/vue';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { dashboard, logout, pricing } from '@/routes';
 import { destroy as destroyProfile, update as updateProfile } from '@/routes/profile';
 import { update as updatePassword } from '@/routes/user-password';
-import type { User } from '@/types/auth';
+import type { SubscriptionStats, User } from '@/types/auth';
 
 defineProps<{
     mustVerifyEmail?: boolean;
@@ -45,14 +50,54 @@ const normalizeTier = (val?: string | null): 'FREE' | 'PRO' | 'VIP' => {
 };
 
 const getInitialTier = (): 'FREE' | 'PRO' | 'VIP' => {
+    if (currentUser.value?.tier) {
+        return normalizeTier(currentUser.value.tier);
+    }
     if (typeof window !== 'undefined') {
         const stored = localStorage.getItem('watoon_user_tier');
         if (stored) return normalizeTier(stored);
     }
-    return normalizeTier(currentUser.value?.tier);
+    return 'FREE';
 };
 
 const currentUserTier = ref<'FREE' | 'PRO' | 'VIP'>(getInitialTier());
+
+watch(
+    () => currentUser.value?.tier,
+    (newTier) => {
+        if (newTier) {
+            currentUserTier.value = normalizeTier(newTier);
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('watoon_user_tier', currentUserTier.value);
+            }
+        }
+    },
+    { immediate: true },
+);
+
+const subscriptionStats = computed<SubscriptionStats>(() => {
+    if (currentUser.value?.subscription_stats) {
+        return currentUser.value.subscription_stats;
+    }
+
+    const tier = currentUserTier.value.toLowerCase() as 'free' | 'pro' | 'vip';
+    const hasSub = tier !== 'free';
+
+    return {
+        has_subscription: hasSub,
+        tier,
+        tier_label: tier === 'vip' ? 'VIP' : tier === 'pro' ? 'Pro' : 'Free',
+        remaining_days: hasSub ? 30 : 0,
+        remaining_hours: hasSub ? 720 : 0,
+        remaining_seconds: hasSub ? 2592000 : 0,
+        total_days: 30,
+        percentage: hasSub ? 100 : 0,
+        is_expiring_soon: false,
+        formatted_remaining: hasSub ? '30 hari tersisa' : 'Tidak aktif',
+        expires_at: currentUser.value?.subscription_expires_at ?? null,
+        expires_formatted: currentUser.value?.subscription_expires_formatted ?? null,
+    };
+});
 
 // Active section tab
 const activeTab = ref<'profile' | 'account' | 'subscription' | 'preferences' | 'privacy'>('profile');
@@ -324,17 +369,20 @@ const downloadInvoice = (date: string) => {
                     <!-- User Tier Chip -> Navigate to Pricing -->
                     <Link
                         :href="pricing.url()"
-                        class="hidden lg:flex items-center px-2.5 py-1 rounded-[6px] text-[11px] font-semibold tracking-wide uppercase transition-all select-none hover:opacity-90"
+                        class="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-[8px] text-[11px] font-bold tracking-[0.14em] uppercase transition-all select-none hover:scale-105 active:scale-95"
                         :class="[
                             currentUserTier === 'VIP'
-                                ? 'border border-[#D4B67A]/50 bg-[#D4B67A]/15 text-[#D4B67A]'
+                                ? 'border border-[#D4B67A]/60 bg-[#D4B67A]/20 text-[#D4B67A] hover:bg-[#D4B67A]/30 shadow-[0_0_16px_rgba(212,182,122,0.3)]'
                                 : currentUserTier === 'PRO'
-                                ? 'border border-[rgba(27,68,232,0.45)] bg-[rgba(27,68,232,0.18)] text-[#7A9BFF]'
-                                : 'border border-[rgba(242,239,234,0.15)] bg-[rgba(242,239,234,0.06)] text-[#A0A0A5]'
+                                ? 'border border-[#1B44E8]/60 bg-[#1B44E8]/20 text-[#7A9BFF] hover:bg-[#1B44E8]/30 shadow-[0_0_16px_rgba(27,68,232,0.3)]'
+                                : 'border border-[rgba(242,239,234,0.18)] bg-[rgba(242,239,234,0.07)] text-[#A0A0A5] hover:text-[#F2EFEA] hover:border-white/30'
                         ]"
                         :title="`Status Kasta: ${currentUserTier} (Klik untuk buka halaman paket langganan)`"
                     >
-                        {{ currentUserTier }} PLAN
+                        <Crown v-if="currentUserTier === 'VIP'" class="w-3.5 h-3.5 text-[#D4B67A]" />
+                        <Sparkles v-else-if="currentUserTier === 'PRO'" class="w-3.5 h-3.5 text-[#7A9BFF]" />
+                        <span v-else class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        <span>{{ currentUserTier }}</span>
                     </Link>
 
                     <!-- User Avatar with Settings Active Indicator -->
@@ -365,17 +413,29 @@ const downloadInvoice = (date: string) => {
                                 <Laptop class="w-4 h-4 text-[#8C8C90]" />
                                 <span>Dashboard</span>
                             </Link>
-                            <button
-                                type="button"
-                                @click="isPlanModalOpen = true; isUserMenuOpen = false;"
+                            <Link
+                                :href="pricing.url()"
                                 class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[#8C8C90] hover:text-[#F2EFEA] hover:bg-white/[0.04] transition-colors"
                             >
                                 <div class="flex items-center gap-2.5">
-                                    <CreditCard class="w-4 h-4 text-[#7A9BFF]" />
-                                    <span>Langganan Pro</span>
+                                    <Crown v-if="currentUserTier === 'VIP'" class="w-4 h-4 text-[#D4B67A]" />
+                                    <Sparkles v-else-if="currentUserTier === 'PRO'" class="w-4 h-4 text-[#7A9BFF]" />
+                                    <CreditCard v-else class="w-4 h-4 text-[#A0A0A5]" />
+                                    <span>Paket Langganan</span>
                                 </div>
-                                <span class="text-[10px] font-semibold text-[#7A9BFF] bg-[rgba(27,68,232,0.2)] px-1.5 py-0.5 rounded">PRO</span>
-                            </button>
+                                <span
+                                    class="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                                    :class="[
+                                        currentUserTier === 'VIP'
+                                            ? 'text-[#D4B67A] bg-[rgba(212,182,122,0.2)]'
+                                            : currentUserTier === 'PRO'
+                                            ? 'text-[#7A9BFF] bg-[rgba(27,68,232,0.2)]'
+                                            : 'text-[#A0A0A5] bg-white/10'
+                                    ]"
+                                >
+                                    {{ currentUserTier }}
+                                </span>
+                            </Link>
                             <div class="border-t border-[rgba(242,239,234,0.08)] my-1"></div>
                             <Link
                                 :href="logout.url()"
@@ -457,7 +517,18 @@ const downloadInvoice = (date: string) => {
                                 <CreditCard class="w-[18px] h-[18px]" />
                                 <span>Subscription</span>
                             </div>
-                            <span class="text-[10px] font-semibold text-[#7A9BFF] bg-[rgba(27,68,232,0.2)] px-1.5 py-0.5 rounded">PRO</span>
+                            <span
+                                class="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                                :class="[
+                                    currentUserTier === 'VIP'
+                                        ? 'text-[#D4B67A] bg-[rgba(212,182,122,0.2)]'
+                                        : currentUserTier === 'PRO'
+                                        ? 'text-[#7A9BFF] bg-[rgba(27,68,232,0.2)]'
+                                        : 'text-[#A0A0A5] bg-white/10'
+                                ]"
+                            >
+                                {{ currentUserTier }}
+                            </span>
                         </button>
 
                         <button
@@ -499,16 +570,171 @@ const downloadInvoice = (date: string) => {
                         </a>
                     </div>
 
-                    <!-- Sidebar Plan Status Callout -->
-                    <div class="mt-8 p-3.5 rounded-[10px] bg-[#17181B] border border-[rgba(242,239,234,0.06)] text-[12px]">
-                        <div class="flex items-center justify-between text-[#8C8C90] mb-1">
-                            <span>Storage / History</span>
-                            <span class="text-[#F2EFEA]">78%</span>
+                    <!-- Sidebar Subscription Duration Callout -->
+                    <div
+                        class="mt-8 p-3.5 rounded-[12px] bg-[#17181B] border transition-all duration-300 relative overflow-hidden"
+                        :class="[
+                            subscriptionStats.is_expiring_soon
+                                ? 'border-red-500/40 shadow-[0_0_18px_rgba(239,68,68,0.2)] bg-gradient-to-b from-[#1E1214] to-[#17181B]'
+                                : currentUserTier === 'VIP'
+                                ? 'border-[#D4B67A]/35 shadow-[0_0_18px_rgba(212,182,122,0.12)] bg-gradient-to-b from-[#1F1B14] to-[#17181B]'
+                                : currentUserTier === 'PRO'
+                                ? 'border-[rgba(27,68,232,0.35)] shadow-[0_0_18px_rgba(27,68,232,0.14)] bg-gradient-to-b from-[#121626] to-[#17181B]'
+                                : 'border-[rgba(242,239,234,0.06)]',
+                        ]"
+                    >
+                        <!-- Top ambient glow line for paid tiers -->
+                        <div
+                            v-if="subscriptionStats.has_subscription"
+                            class="absolute top-0 left-0 right-0 h-[2px]"
+                            :class="[
+                                subscriptionStats.is_expiring_soon
+                                    ? 'bg-gradient-to-r from-red-600 via-rose-500 to-red-600 animate-pulse'
+                                    : currentUserTier === 'VIP'
+                                    ? 'bg-gradient-to-r from-transparent via-[#D4B67A] to-transparent'
+                                    : 'bg-gradient-to-r from-transparent via-[#1B44E8] to-transparent'
+                            ]"
+                        ></div>
+
+                        <!-- Header with Tier icon, Title & Status Pill -->
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <AlertTriangle
+                                    v-if="subscriptionStats.is_expiring_soon"
+                                    class="w-4 h-4 text-red-400 shrink-0 animate-bounce"
+                                />
+                                <Crown
+                                    v-else-if="currentUserTier === 'VIP'"
+                                    class="w-4 h-4 text-[#D4B67A] shrink-0"
+                                />
+                                <Sparkles
+                                    v-else-if="currentUserTier === 'PRO'"
+                                    class="w-4 h-4 text-[#7A9BFF] shrink-0"
+                                />
+                                <Shield
+                                    v-else
+                                    class="w-4 h-4 text-[#8C8C90] shrink-0"
+                                />
+                                <span class="font-semibold text-[12px] truncate text-[#F2EFEA]">
+                                    {{ subscriptionStats.is_expiring_soon ? 'Masa Berlaku' : currentUserTier === 'VIP' ? 'Durasi VIP' : currentUserTier === 'PRO' ? 'Durasi Pro' : 'Paket Free' }}
+                                </span>
+                            </div>
+
+                            <!-- Status Badge -->
+                            <span
+                                v-if="subscriptionStats.has_subscription"
+                                class="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 uppercase tracking-wider"
+                                :class="[
+                                    subscriptionStats.is_expiring_soon
+                                        ? 'bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse'
+                                        : currentUserTier === 'VIP'
+                                        ? 'bg-[#D4B67A]/20 text-[#D4B67A] border border-[#D4B67A]/30'
+                                        : 'bg-[rgba(27,68,232,0.2)] text-[#7A9BFF] border border-[rgba(27,68,232,0.35)]'
+                                ]"
+                            >
+                                {{ subscriptionStats.is_expiring_soon ? 'Hampir Habis' : `${subscriptionStats.percentage}%` }}
+                            </span>
+                            <span
+                                v-else
+                                class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/5 text-[#8C8C90] border border-white/10"
+                            >
+                                Basic
+                            </span>
                         </div>
-                        <div class="w-full bg-[#1E1F23] h-1.5 rounded-full overflow-hidden">
-                            <div class="bg-[#1B44E8] h-full w-[78%]"></div>
+
+                        <!-- Progress Bar Track -->
+                        <div class="w-full bg-[#111215] h-2 rounded-full overflow-hidden p-[1px] border border-white/5 my-2">
+                            <div
+                                class="h-full rounded-full transition-all duration-700 ease-out"
+                                :style="{
+                                    width: subscriptionStats.has_subscription
+                                        ? `${Math.max(5, Math.min(100, subscriptionStats.percentage))}%`
+                                        : '0%'
+                                }"
+                                :class="[
+                                    subscriptionStats.is_expiring_soon
+                                        ? 'bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 shadow-[0_0_12px_rgba(239,68,68,0.7)] animate-pulse'
+                                        : currentUserTier === 'VIP'
+                                        ? 'bg-gradient-to-r from-[#B38F48] via-[#D4B67A] to-[#F3DEB0] shadow-[0_0_12px_rgba(212,182,122,0.5)]'
+                                        : currentUserTier === 'PRO'
+                                        ? 'bg-gradient-to-r from-[#1B44E8] via-[#3561FF] to-[#7A9BFF] shadow-[0_0_12px_rgba(27,68,232,0.5)]'
+                                        : 'bg-[#2A2B30]'
+                                ]"
+                            ></div>
                         </div>
-                        <p class="text-[11px] text-[#8C8C90] mt-2">1,240 saved bookmarks and 48 curated film reviews.</p>
+
+                        <!-- Details & Countdown -->
+                        <div v-if="subscriptionStats.has_subscription" class="space-y-1 mt-2">
+                            <div class="flex items-center justify-between text-[11px]">
+                                <span class="flex items-center gap-1.5" :class="subscriptionStats.is_expiring_soon ? 'text-red-400 font-medium' : 'text-[#8C8C90]'">
+                                    <Clock class="w-3 h-3 shrink-0" />
+                                    <span>{{ subscriptionStats.formatted_remaining }}</span>
+                                </span>
+                                <span class="text-[#F2EFEA] font-semibold text-[11px]">
+                                    {{ subscriptionStats.remaining_days }} / {{ subscriptionStats.total_days }} hari
+                                </span>
+                            </div>
+
+                            <p
+                                v-if="subscriptionStats.expires_formatted"
+                                class="text-[10px] text-[#8C8C90] truncate"
+                                :title="subscriptionStats.expires_formatted"
+                            >
+                                Berakhir: <span class="text-[#F2EFEA]/80">{{ subscriptionStats.expires_formatted }}</span>
+                            </p>
+
+                            <!-- Urgent Warning Alert Box when <= 3 days -->
+                            <div
+                                v-if="subscriptionStats.is_expiring_soon"
+                                class="mt-2.5 pt-2 border-t border-red-500/20"
+                            >
+                                <p class="text-[11px] text-red-300 leading-tight mb-2">
+                                    Masa langganan tersisa kurang dari 3 hari. Perpanjang sekarang agar akses VIP/Pro tidak terputus!
+                                </p>
+                                <Link
+                                    :href="pricing.url()"
+                                    class="w-full py-1.5 px-2.5 rounded-[8px] bg-red-600 hover:bg-red-500 text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-md shadow-red-900/30"
+                                >
+                                    <Zap class="w-3.5 h-3.5 text-amber-200 fill-amber-200" />
+                                    <span>Perpanjang Langganan</span>
+                                </Link>
+                            </div>
+
+                            <!-- Regular action link when not expiring soon -->
+                            <div v-else class="mt-2.5 pt-2 border-t border-[rgba(242,239,234,0.06)] flex items-center justify-between text-[11px]">
+                                <Link
+                                    v-if="currentUserTier === 'PRO'"
+                                    :href="pricing.url()"
+                                    class="text-[#7A9BFF] hover:text-white font-medium flex items-center gap-1 transition-colors"
+                                >
+                                    <span>Upgrade ke VIP</span>
+                                    <span>&rarr;</span>
+                                </Link>
+                                <Link
+                                    v-else-if="currentUserTier === 'VIP'"
+                                    :href="pricing.url()"
+                                    class="text-[#D4B67A] hover:text-[#F3DEB0] font-medium flex items-center gap-1 transition-colors"
+                                >
+                                    <span>Perpanjang VIP</span>
+                                    <span>&rarr;</span>
+                                </Link>
+                                <span class="text-[10px] text-[#8C8C90]">Auto-renew off</span>
+                            </div>
+                        </div>
+
+                        <!-- Free Tier State -->
+                        <div v-else class="space-y-2 mt-2">
+                            <p class="text-[11px] text-[#8C8C90] leading-relaxed">
+                                Nikmati akses tanpa batas, streaming 4K &amp; fitur chat kreator dengan upgrade paket.
+                            </p>
+                            <Link
+                                :href="pricing.url()"
+                                class="w-full py-1.5 px-3 rounded-[8px] bg-[#1B44E8] hover:bg-[#2853ff] text-white text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                            >
+                                <Crown class="w-3.5 h-3.5 text-[#F3DEB0]" />
+                                <span>Upgrade Pro / VIP</span>
+                            </Link>
+                        </div>
                     </div>
                 </aside>
 
@@ -527,9 +753,18 @@ const downloadInvoice = (date: string) => {
                                 <div class="w-[72px] h-[72px] rounded-full bg-[#1E1F23] border border-[rgba(242,239,234,0.15)] flex items-center justify-center text-[22px] font-semibold text-[#F2EFEA] tracking-tight">
                                     {{ initials }}
                                 </div>
-                                <!-- Attached PRO Tier Badge with 2px #0E0F11 isolation ring -->
-                                <span class="absolute -bottom-1 -right-1 h-[20px] px-2 rounded-full bg-[#1B44E8] text-[#FFFFFF] text-[10px] font-bold tracking-wider flex items-center justify-center border-2 border-[#0E0F11] shadow-sm">
-                                    PRO
+                                <!-- Attached Dynamic Tier Badge with 2px #0E0F11 isolation ring -->
+                                <span
+                                    class="absolute -bottom-1 -right-1 h-[20px] px-2 rounded-full text-[10px] font-bold tracking-wider flex items-center justify-center border-2 border-[#0E0F11] shadow-sm uppercase"
+                                    :class="[
+                                        currentUserTier === 'VIP'
+                                            ? 'bg-[#D4B67A] text-[#0E0F11]'
+                                            : currentUserTier === 'PRO'
+                                            ? 'bg-[#1B44E8] text-[#FFFFFF]'
+                                            : 'bg-[#2A2B30] text-[#A0A0A5]'
+                                    ]"
+                                >
+                                    {{ currentUserTier }}
                                 </span>
                             </div>
 
@@ -704,22 +939,76 @@ const downloadInvoice = (date: string) => {
                                 <div>
                                     <span class="text-[11px] font-semibold tracking-[0.12em] text-[#8C8C90] uppercase block">CURRENT PLAN</span>
                                     <div class="flex items-center gap-3 mt-1.5">
-                                        <span class="text-2xl font-semibold text-[#F2EFEA]">Pro</span>
-                                        <span class="px-2.5 py-0.5 rounded-[6px] bg-[rgba(27,68,232,0.20)] border border-[rgba(27,68,232,0.45)] text-[#7A9BFF] text-[11px] font-semibold">
-                                            PRO
+                                        <span class="text-2xl font-semibold text-[#F2EFEA]">
+                                            {{ currentUserTier === 'VIP' ? 'WATOON VIP' : currentUserTier === 'PRO' ? 'WATOON Pro' : 'WATOON Free' }}
+                                        </span>
+                                        <span
+                                            class="px-2.5 py-0.5 rounded-[6px] text-[11px] font-semibold uppercase"
+                                            :class="[
+                                                currentUserTier === 'VIP'
+                                                    ? 'bg-[#D4B67A]/20 border border-[#D4B67A]/50 text-[#D4B67A]'
+                                                    : currentUserTier === 'PRO'
+                                                    ? 'bg-[rgba(27,68,232,0.20)] border border-[rgba(27,68,232,0.45)] text-[#7A9BFF]'
+                                                    : 'bg-white/10 border border-white/20 text-[#A0A0A5]'
+                                            ]"
+                                        >
+                                            {{ currentUserTier }}
                                         </span>
                                     </div>
-                                    <p class="text-[15px] font-medium text-[#F2EFEA] mt-1">Rp 80.000 <span class="text-[#8C8C90] font-normal text-[13px]">/ month</span></p>
-                                    <p class="text-[12px] text-[#8C8C90] mt-0.5">Renews automatically on <span class="text-[#F2EFEA]">14 Nov 2026</span></p>
+                                    <p class="text-[15px] font-medium text-[#F2EFEA] mt-1">
+                                        {{ currentUserTier === 'VIP' ? 'Rp 149.000' : currentUserTier === 'PRO' ? 'Rp 79.000' : 'Rp 0' }}
+                                        <span class="text-[#8C8C90] font-normal text-[13px]">{{ currentUserTier === 'FREE' ? '(Gratis Selamanya)' : '/ bulan' }}</span>
+                                    </p>
+                                    <p v-if="currentUser?.subscription_expires_formatted" class="text-[12px] text-[#8C8C90] mt-0.5">
+                                        Aktif hingga <span class="text-[#F2EFEA] font-medium">{{ currentUser.subscription_expires_formatted }}</span>
+                                    </p>
+                                    <p v-else-if="currentUserTier !== 'FREE'" class="text-[12px] text-[#8C8C90] mt-0.5">
+                                        Status langganan <span class="text-emerald-400 font-medium">Aktif</span>
+                                    </p>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        @click="isPlanModalOpen = true"
-                                        class="h-[36px] px-4 rounded-[10px] bg-transparent border border-[rgba(242,239,234,0.12)] hover:border-[rgba(242,239,234,0.25)] hover:bg-[#1E1F23] text-[13px] font-medium text-[#F2EFEA] transition-all"
+                                    <Link
+                                        :href="pricing.url()"
+                                        class="h-[36px] px-4 rounded-[10px] bg-transparent border border-[rgba(242,239,234,0.12)] hover:border-[rgba(242,239,234,0.25)] hover:bg-[#1E1F23] text-[13px] font-medium text-[#F2EFEA] transition-all flex items-center justify-center"
                                     >
-                                        Change plan
-                                    </button>
+                                        {{ currentUserTier === 'VIP' ? 'Kelola Paket' : 'Ganti Paket' }}
+                                    </Link>
+                                </div>
+                            </div>
+
+                            <!-- Remaining Duration Progress Bar inside Current Plan Block -->
+                            <div v-if="subscriptionStats.has_subscription" class="mt-5 p-4 rounded-[10px] bg-[#111215] border border-[rgba(242,239,234,0.06)]">
+                                <div class="flex items-center justify-between text-[12px] mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <Clock class="w-4 h-4" :class="subscriptionStats.is_expiring_soon ? 'text-red-400' : 'text-[#8C8C90]'" />
+                                        <span class="font-medium text-[#F2EFEA]">Sisa Masa Langganan</span>
+                                        <span
+                                            v-if="subscriptionStats.is_expiring_soon"
+                                            class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse"
+                                        >
+                                            Segera Berakhir (&le; 3 hari)
+                                        </span>
+                                    </div>
+                                    <span class="font-semibold" :class="subscriptionStats.is_expiring_soon ? 'text-red-400' : 'text-[#F2EFEA]'">
+                                        {{ subscriptionStats.remaining_days }} / {{ subscriptionStats.total_days }} hari ({{ subscriptionStats.percentage }}%)
+                                    </span>
+                                </div>
+                                <div class="w-full bg-[#1E1F23] h-2.5 rounded-full overflow-hidden p-[1px]">
+                                    <div
+                                        class="h-full rounded-full transition-all duration-700 ease-out"
+                                        :style="{ width: `${Math.max(4, Math.min(100, subscriptionStats.percentage))}%` }"
+                                        :class="[
+                                            subscriptionStats.is_expiring_soon
+                                                ? 'bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 shadow-[0_0_12px_rgba(239,68,68,0.7)] animate-pulse'
+                                                : currentUserTier === 'VIP'
+                                                ? 'bg-gradient-to-r from-[#B38F48] via-[#D4B67A] to-[#F3DEB0] shadow-[0_0_12px_rgba(212,182,122,0.5)]'
+                                                : 'bg-gradient-to-r from-[#1B44E8] via-[#3561FF] to-[#7A9BFF] shadow-[0_0_12px_rgba(27,68,232,0.5)]'
+                                        ]"
+                                    ></div>
+                                </div>
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-[#8C8C90] mt-2 gap-1">
+                                    <span>{{ subscriptionStats.formatted_remaining }}</span>
+                                    <span v-if="subscriptionStats.expires_formatted">Kedaluwarsa pada: <span class="text-[#F2EFEA]">{{ subscriptionStats.expires_formatted }}</span></span>
                                 </div>
                             </div>
 
@@ -727,35 +1016,36 @@ const downloadInvoice = (date: string) => {
                             <div class="pt-5 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                                 <div class="flex items-center gap-2.5 text-[13px] text-[#F2EFEA]">
                                     <Check class="w-4 h-4 text-[#1B44E8]" />
-                                    <span>Full access to the film library</span>
+                                    <span>{{ currentUserTier === 'VIP' ? 'Akses 100% film & novel tanpa batas' : currentUserTier === 'PRO' ? 'Akses seluruh film & kreator Pro' : 'Akses katalog film publik & gratis' }}</span>
                                 </div>
                                 <div class="flex items-center gap-2.5 text-[13px] text-[#F2EFEA]">
                                     <Check class="w-4 h-4 text-[#1B44E8]" />
-                                    <span>Private chat with film creators</span>
+                                    <span>{{ currentUserTier === 'VIP' ? 'Chat eksklusif kreator semua kasta (VIP, Pro, Free)' : currentUserTier === 'PRO' ? 'Chat kreator setara & di bawah (Pro & Free)' : 'Chat terbatas ke kreator Free' }}</span>
                                 </div>
                                 <div class="flex items-center gap-2.5 text-[13px] text-[#F2EFEA]">
                                     <Check class="w-4 h-4 text-[#1B44E8]" />
-                                    <span>HD streaming quality (1080p)</span>
+                                    <span>{{ currentUserTier === 'VIP' ? 'Kualitas 4K Ultra HD & HDR Cinema' : currentUserTier === 'PRO' ? 'Kualitas 1080p Full HD' : 'Kualitas Standar HD 720p' }}</span>
                                 </div>
                                 <div class="flex items-center gap-2.5 text-[13px] text-[#F2EFEA]">
                                     <Check class="w-4 h-4 text-[#1B44E8]" />
-                                    <span>Ad-free cinema experience</span>
+                                    <span>{{ currentUserTier === 'FREE' ? 'Didukung iklan wajar' : '100% Bebas Iklan (Ad-free Cinema)' }}</span>
                                 </div>
                             </div>
 
                             <!-- Upgrade Hint with VIP Brass Accents -->
-                            <div class="mt-6 p-3.5 rounded-[8px] bg-[#1E1F23] border border-[rgba(212,182,122,0.2)] flex items-center justify-between text-[12px]">
+                            <div v-if="currentUserTier !== 'VIP'" class="mt-6 p-3.5 rounded-[8px] bg-[#1E1F23] border border-[rgba(212,182,122,0.2)] flex items-center justify-between text-[12px]">
                                 <div class="flex items-center gap-2.5">
                                     <span class="w-2 h-2 rounded-full bg-[#D4B67A]"></span>
-                                    <span class="text-[#F2EFEA]">Upgrade to VIP for unlimited film screening &amp; full novel catalogs.</span>
+                                    <span class="text-[#F2EFEA]">
+                                        {{ currentUserTier === 'PRO' ? 'Upgrade ke VIP untuk akses 4K HDR, katalog novel penuh & chat semua kreator.' : 'Upgrade ke Pro atau VIP untuk streaming Full HD dan chat ke para kreator.' }}
+                                    </span>
                                 </div>
-                                <button
-                                    type="button"
-                                    @click="isPlanModalOpen = true"
-                                    class="text-[#7A9BFF] hover:text-white font-medium flex items-center gap-1"
+                                <Link
+                                    :href="pricing.url()"
+                                    class="text-[#7A9BFF] hover:text-white font-medium flex items-center gap-1 cursor-pointer shrink-0 ml-3"
                                 >
                                     Upgrade &rarr;
-                                </button>
+                                </Link>
                             </div>
                         </div>
 
@@ -1329,36 +1619,68 @@ const downloadInvoice = (date: string) => {
                 </div>
 
                 <div class="space-y-3 my-5">
+                    <!-- Free Plan Card -->
+                    <div
+                        class="p-4 rounded-xl bg-[#1E1F23] border relative flex items-center justify-between"
+                        :class="currentUserTier === 'FREE' ? 'border-white/40 ring-1 ring-white/20' : 'border-[rgba(242,239,234,0.08)]'"
+                    >
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-semibold text-white">WATOON Free</span>
+                                <span v-if="currentUserTier === 'FREE'" class="px-2 py-0.5 rounded text-[10px] font-semibold bg-white/10 text-emerald-400">AKTIF</span>
+                            </div>
+                            <p class="text-xs text-[#8C8C90]">Katalog film umum dengan kualitas standar 720p.</p>
+                            <p class="text-sm font-semibold text-[#F2EFEA] mt-2">Rp 0 <span class="text-xs font-normal text-[#8C8C90]">/ selamanya</span></p>
+                        </div>
+                        <Check v-if="currentUserTier === 'FREE'" class="w-5 h-5 text-emerald-400" />
+                    </div>
+
                     <!-- Pro Plan Card -->
-                    <div class="p-4 rounded-xl bg-[#1E1F23] border-2 border-[#1B44E8] relative flex items-center justify-between">
+                    <div
+                        class="p-4 rounded-xl bg-[#1E1F23] border relative flex items-center justify-between"
+                        :class="currentUserTier === 'PRO' ? 'border-[#1B44E8] ring-1 ring-[#1B44E8]/50' : 'border-[rgba(242,239,234,0.08)]'"
+                    >
                         <div>
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="font-semibold text-white">WATOON Pro</span>
-                                <span class="px-2 py-0.2 rounded text-[10px] font-semibold bg-[#1B44E8] text-white">CURRENT</span>
+                                <span v-if="currentUserTier === 'PRO'" class="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#1B44E8] text-white">AKTIF</span>
+                                <span v-else class="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#1B44E8]/20 text-[#7A9BFF]">POPULER</span>
                             </div>
-                            <p class="text-xs text-[#8C8C90]">1080p Full HD, ad-free streaming &amp; creator chats.</p>
-                            <p class="text-sm font-semibold text-[#F2EFEA] mt-2">Rp 80.000 <span class="text-xs font-normal text-[#8C8C90]">/ bulan</span></p>
+                            <p class="text-xs text-[#8C8C90]">1080p Full HD, streaming tanpa iklan &amp; chat kreator Pro.</p>
+                            <p class="text-sm font-semibold text-[#7A9BFF] mt-2">Rp 79.000 <span class="text-xs font-normal text-[#8C8C90]">/ bulan</span></p>
                         </div>
-                        <Check class="w-5 h-5 text-[#1B44E8]" />
+                        <Check v-if="currentUserTier === 'PRO'" class="w-5 h-5 text-[#7A9BFF]" />
+                        <Link
+                            v-else-if="currentUserTier === 'FREE'"
+                            :href="pricing.url()"
+                            class="px-3.5 py-1.5 rounded-lg bg-[#1B44E8] text-white font-semibold text-xs hover:bg-[#1537C2] transition-all"
+                        >
+                            Pilih Pro
+                        </Link>
                     </div>
 
                     <!-- VIP Plan Card -->
-                    <div class="p-4 rounded-xl bg-[#1E1F23] border border-[rgba(212,182,122,0.3)] hover:border-[#D4B67A] transition-colors flex items-center justify-between">
+                    <div
+                        class="p-4 rounded-xl bg-[#1E1F23] border relative flex items-center justify-between"
+                        :class="currentUserTier === 'VIP' ? 'border-[#D4B67A] ring-1 ring-[#D4B67A]/50' : 'border-[rgba(212,182,122,0.3)] hover:border-[#D4B67A]'"
+                    >
                         <div>
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="font-semibold text-white">WATOON VIP</span>
-                                <span class="px-2 py-0.2 rounded text-[10px] font-semibold bg-[rgba(212,182,122,0.2)] text-[#D4B67A] border border-[rgba(212,182,122,0.4)]">ALL ACCESS</span>
+                                <span v-if="currentUserTier === 'VIP'" class="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#D4B67A] text-[#0E0F11]">AKTIF</span>
+                                <span v-else class="px-2 py-0.5 rounded text-[10px] font-semibold bg-[rgba(212,182,122,0.2)] text-[#D4B67A] border border-[rgba(212,182,122,0.4)]">ALL ACCESS</span>
                             </div>
-                            <p class="text-xs text-[#8C8C90]">4K HDR Cinema, unlimited novel library, director screenings.</p>
+                            <p class="text-xs text-[#8C8C90]">4K HDR Cinema, novel lengkap &amp; akses chat semua kreator VIP.</p>
                             <p class="text-sm font-semibold text-[#D4B67A] mt-2">Rp 149.000 <span class="text-xs font-normal text-[#8C8C90]">/ bulan</span></p>
                         </div>
-                        <button
-                            type="button"
-                            @click="isPlanModalOpen = false; showToast('Upgrade ke VIP diproses');"
+                        <Check v-if="currentUserTier === 'VIP'" class="w-5 h-5 text-[#D4B67A]" />
+                        <Link
+                            v-else
+                            :href="pricing.url()"
                             class="px-3.5 py-1.5 rounded-lg bg-[#D4B67A] text-[#0E0F11] font-semibold text-xs hover:bg-[#D4B67A]/90 transition-all"
                         >
-                            Upgrade
-                        </button>
+                            Upgrade VIP
+                        </Link>
                     </div>
                 </div>
 

@@ -90,14 +90,21 @@ const normalizeTier = (val?: string | null): KastaTier => {
 };
 
 const getInitialTier = (): KastaTier => {
+    if (currentUser.value?.tier) {
+        const t = normalizeTier(currentUser.value.tier);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('watoon_user_tier', t);
+        }
+        return t;
+    }
     if (typeof window !== 'undefined') {
         const stored = localStorage.getItem('watoon_user_tier');
         if (stored) return normalizeTier(stored);
     }
-    return normalizeTier(currentUser.value?.tier);
+    return 'FREE';
 };
 
-// Default user tier is FREE (unless previously set / stored / loaded from DB)
+// Default user tier is loaded from authenticated database user
 const currentUserTier = ref<KastaTier>(getInitialTier());
 const isKastaModalOpen = ref(false);
 const targetUpgradeTier = ref<KastaTier>('PRO');
@@ -107,9 +114,14 @@ watch(
     () => currentUser.value?.tier,
     (newTier) => {
         if (newTier) {
-            currentUserTier.value = normalizeTier(newTier);
+            const normalized = normalizeTier(newTier);
+            currentUserTier.value = normalized;
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('watoon_user_tier', normalized);
+            }
         }
     },
+    { immediate: true },
 );
 
 const tierRank = (t: string): number => {

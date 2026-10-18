@@ -13,10 +13,11 @@ import {
     Search,
     Settings,
     Share2,
+    Sparkles,
     Star,
     X,
 } from '@lucide/vue';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { dashboard, logout, pricing } from '@/routes';
 import { edit } from '@/routes/profile';
 import type { User } from '@/types/auth';
@@ -89,14 +90,35 @@ const normalizeTier = (val?: string | null): 'FREE' | 'PRO' | 'VIP' => {
 };
 
 const getInitialTier = (): 'FREE' | 'PRO' | 'VIP' => {
+    if (currentUser.value?.tier) {
+        const t = normalizeTier(currentUser.value.tier);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('watoon_user_tier', t);
+        }
+        return t;
+    }
     if (typeof window !== 'undefined') {
         const stored = localStorage.getItem('watoon_user_tier');
         if (stored) return normalizeTier(stored);
     }
-    return normalizeTier(currentUser.value?.tier);
+    return 'FREE';
 };
 
 const currentUserTier = ref<'FREE' | 'PRO' | 'VIP'>(getInitialTier());
+
+watch(
+    () => currentUser.value?.tier,
+    (newTier) => {
+        if (newTier) {
+            const normalized = normalizeTier(newTier);
+            currentUserTier.value = normalized;
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('watoon_user_tier', normalized);
+            }
+        }
+    },
+    { immediate: true },
+);
 const userMenuOpen = ref(false);
 const isScrolled = ref(false);
 const isReadMore = ref(false);
@@ -424,17 +446,20 @@ onUnmounted(() => {
                     <!-- Kasta Tier Badge -> Navigate to Pricing -->
                     <Link
                         :href="pricing.url()"
-                        class="mr-4 flex h-[26px] cursor-pointer items-center justify-center rounded-[8px] px-[10px] text-[11px] font-semibold tracking-[0.14em] uppercase transition-all select-none"
+                        class="mr-4 flex h-[28px] cursor-pointer items-center justify-center gap-1.5 rounded-[8px] px-3 text-[11px] font-bold tracking-[0.14em] uppercase transition-all select-none hover:scale-105 active:scale-95"
                         :class="[
                             currentUserTier === 'VIP'
-                                ? 'border border-[#D4B67A]/50 bg-[#D4B67A]/15 text-[#D4B67A] hover:bg-[#D4B67A]/25 shadow-[0_0_12px_rgba(212,182,122,0.15)]'
+                                ? 'border border-[#D4B67A]/60 bg-[#D4B67A]/20 text-[#D4B67A] hover:bg-[#D4B67A]/30 shadow-[0_0_16px_rgba(212,182,122,0.3)]'
                                 : currentUserTier === 'PRO'
-                                ? 'border border-[rgba(27,68,232,0.35)] bg-[rgba(27,68,232,0.14)] text-[#7A9BFF] hover:bg-[rgba(27,68,232,0.22)] shadow-[0_0_12px_rgba(27,68,232,0.15)]'
-                                : 'border border-[rgba(242,239,234,0.15)] bg-[rgba(242,239,234,0.06)] text-[#A0A0A5] hover:text-[#F2EFEA] hover:border-[rgba(242,239,234,0.25)]'
+                                ? 'border border-[#1B44E8]/60 bg-[#1B44E8]/20 text-[#7A9BFF] hover:bg-[#1B44E8]/30 shadow-[0_0_16px_rgba(27,68,232,0.3)]'
+                                : 'border border-[rgba(242,239,234,0.18)] bg-[rgba(242,239,234,0.07)] text-[#A0A0A5] hover:text-[#F2EFEA] hover:border-white/30'
                         ]"
                         :title="`Status Kasta: ${currentUserTier} (Klik untuk buka halaman paket langganan)`"
                     >
-                        {{ currentUserTier }}
+                        <Crown v-if="currentUserTier === 'VIP'" class="w-3.5 h-3.5 text-[#D4B67A]" />
+                        <Sparkles v-else-if="currentUserTier === 'PRO'" class="w-3.5 h-3.5 text-[#7A9BFF]" />
+                        <span v-else class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        <span>{{ currentUserTier }}</span>
                     </Link>
 
                     <!-- User Avatar & Dropdown -->
