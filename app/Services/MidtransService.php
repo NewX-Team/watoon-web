@@ -95,6 +95,48 @@ class MidtransService
     }
 
     /**
+     * Check transaction status directly with Midtrans API.
+     */
+    public function getTransactionStatus(string $orderId): ?array
+    {
+        $serverKey = config('services.midtrans.server_key');
+
+        if (empty($serverKey)) {
+            return null;
+        }
+
+        $isProduction = (bool) config('services.midtrans.is_production', false);
+        $baseUrl = $isProduction ? 'https://api.midtrans.com' : 'https://api.sandbox.midtrans.com';
+        $url = "{$baseUrl}/v2/{$orderId}/status";
+
+        try {
+            $response = Http::withBasicAuth($serverKey, '')
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                ])
+                ->timeout(10)
+                ->get($url);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            Log::warning('Midtrans Status API non-200 response', [
+                'order_id' => $orderId,
+                'status' => $response->status(),
+                'body' => $response->json(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Midtrans Status API request failed', [
+                'order_id' => $orderId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return null;
+    }
+
+    /**
      * Verify Midtrans notification signature key.
      */
     public function verifySignature(string $orderId, string $statusCode, string $grossAmount, string $signatureKey): bool
@@ -111,9 +153,9 @@ class MidtransService
     }
 
     /**
-     * Process notification payload received from Midtrans webhook.
+     * Process notification payload received from Midtrans webhook or local simulation.
      */
-    public function processNotification(array $payload): Subscription
+    public function processNotification(array $payload, bool $skipSignature = false): Subscription
     {
         $orderId = $payload['order_id'] ?? null;
 
@@ -126,8 +168,9 @@ class MidtransService
         $statusCode = (string) ($payload['status_code'] ?? '');
         $grossAmount = (string) ($payload['gross_amount'] ?? $subscription->gross_amount);
         $signatureKey = (string) ($payload['signature_key'] ?? '');
+        $isSimulation = ($payload['payment_type'] ?? '') === 'simulation';
 
-        if (! empty(config('services.midtrans.server_key')) && ! $this->verifySignature($orderId, $statusCode, $grossAmount, $signatureKey)) {
+        if (! $skipSignature && ! $isSimulation && ! empty(config('services.midtrans.server_key')) && ! $this->verifySignature($orderId, $statusCode, $grossAmount, $signatureKey)) {
             Log::warning('Midtrans Webhook Invalid Signature', [
                 'order_id' => $orderId,
                 'payload' => $payload,

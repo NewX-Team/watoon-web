@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Role;
+use App\Enums\SubscriptionStatus;
 use App\Enums\UserTier;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -147,5 +148,109 @@ class User extends Authenticatable
         // - extending Pro is allowed
         // - downgrading to Free is handled above
         return ['allowed' => true, 'reason' => null];
+    }
+
+    /**
+     * Get detailed subscription duration statistics.
+     *
+     * @return array{
+     *     has_subscription: bool,
+     *     tier: string,
+     *     tier_label: string,
+     *     remaining_days: int,
+     *     remaining_hours: int,
+     *     remaining_seconds: int,
+     *     total_days: int,
+     *     percentage: int,
+     *     is_expiring_soon: bool,
+     *     formatted_remaining: string,
+     *     expires_at: string|null,
+     *     expires_formatted: string|null
+     * }
+     */
+    public function subscriptionStats(): array
+    {
+        if (! $this->hasActiveSubscription()) {
+            return [
+                'has_subscription' => false,
+                'tier' => 'free',
+                'tier_label' => 'Free',
+                'remaining_days' => 0,
+                'remaining_hours' => 0,
+                'remaining_seconds' => 0,
+                'total_days' => 0,
+                'percentage' => 0,
+                'is_expiring_soon' => false,
+                'formatted_remaining' => 'Tidak aktif',
+                'expires_at' => null,
+                'expires_formatted' => null,
+            ];
+        }
+
+        $expiresAt = $this->subscription_expires_at;
+
+        if ($expiresAt === null) {
+            return [
+                'has_subscription' => true,
+                'tier' => $this->tier->value,
+                'tier_label' => $this->tier->label(),
+                'remaining_days' => 9999,
+                'remaining_hours' => 9999 * 24,
+                'remaining_seconds' => 9999 * 86400,
+                'total_days' => 9999,
+                'percentage' => 100,
+                'is_expiring_soon' => false,
+                'formatted_remaining' => 'Akses Permanen',
+                'expires_at' => null,
+                'expires_formatted' => 'Akses Permanen',
+            ];
+        }
+
+        $now = now();
+        $remainingSeconds = max(0, $now->diffInSeconds($expiresAt, false));
+        $remainingDays = (int) ceil($remainingSeconds / 86400);
+        $remainingHours = (int) ceil($remainingSeconds / 3600);
+
+        $latestSub = $this->subscriptions()
+            ->where('status', SubscriptionStatus::Settlement)
+            ->latest('expires_at')
+            ->first();
+
+        $totalDays = $latestSub?->billing_cycle?->durationDays() ?? 30;
+        if ($totalDays <= 0) {
+            $totalDays = 30;
+        }
+
+        $effectiveTotalDays = max($totalDays, $remainingDays);
+        $totalSeconds = $effectiveTotalDays * 86400;
+
+        $percentage = (int) min(100, max(0, round(($remainingSeconds / $totalSeconds) * 100)));
+        $isExpiringSoon = $remainingSeconds <= (3 * 86400) && $remainingSeconds > 0;
+
+        if ($remainingDays > 1) {
+            $formattedRemaining = "{$remainingDays} hari tersisa";
+        } elseif ($remainingHours > 1) {
+            $formattedRemaining = "{$remainingHours} jam tersisa";
+        } elseif ($remainingSeconds > 0) {
+            $minutes = max(1, (int) ceil($remainingSeconds / 60));
+            $formattedRemaining = "{$minutes} menit tersisa";
+        } else {
+            $formattedRemaining = 'Kedaluwarsa';
+        }
+
+        return [
+            'has_subscription' => true,
+            'tier' => $this->tier->value,
+            'tier_label' => $this->tier->label(),
+            'remaining_days' => $remainingDays,
+            'remaining_hours' => $remainingHours,
+            'remaining_seconds' => $remainingSeconds,
+            'total_days' => $effectiveTotalDays,
+            'percentage' => $percentage,
+            'is_expiring_soon' => $isExpiringSoon,
+            'formatted_remaining' => $formattedRemaining,
+            'expires_at' => $expiresAt->toIso8601String(),
+            'expires_formatted' => $expiresAt->translatedFormat('d F Y, H:i').' WIB',
+        ];
     }
 }
