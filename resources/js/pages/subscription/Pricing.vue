@@ -8,6 +8,7 @@ import {
     Check,
     CheckCircle2,
     ChevronDown,
+    ChevronRight,
     Clock,
     CreditCard,
     Crown,
@@ -198,26 +199,32 @@ const playSoftClick = () => {
     }
 };
 
-const playCelebrationChime = () => {
+const playCelebrationChime = (theme: KastaTier = 'VIP') => {
     if (!soundEnabled.value) return;
     try {
         initAudio();
         if (!audioCtx) return;
-        const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+        // VIP: warm, resonant luxury cinema harmonic chord (A3, E4, A4, C#5, E5)
+        // PRO: crisp luminous triad (C4, E4, G4, C5)
+        const notes =
+            theme === 'VIP'
+                ? [220.0, 329.63, 440.0, 554.37, 659.25]
+                : [261.63, 329.63, 392.0, 523.25];
+
         notes.forEach((freq, idx) => {
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.type = 'triangle';
+            osc.type = theme === 'VIP' ? 'sine' : 'triangle';
             osc.frequency.value = freq;
-            const startTime = audioCtx.currentTime + idx * 0.09;
+            const startTime = audioCtx.currentTime + idx * 0.08;
             gain.gain.setValueAtTime(0, startTime);
-            gain.gain.linearRampToValueAtTime(0.06, startTime + 0.03);
-            gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.5);
+            gain.gain.linearRampToValueAtTime(theme === 'VIP' ? 0.07 : 0.05, startTime + 0.04);
+            gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.65);
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start(startTime);
-            osc.stop(startTime + 0.5);
+            osc.stop(startTime + 0.65);
         });
     } catch {
         // Audio error ignored safely
@@ -291,52 +298,53 @@ const playCinemaFrequency = (tier: '720' | '1080' | '4k') => {
     }
 };
 
-// Confetti & Celebration State
-interface ConfettiParticle {
-    id: number;
-    x: number;
-    y: number;
-    color: string;
-    size: number;
-    rotation: number;
-    delay: number;
-}
-const confettiParticles = ref<ConfettiParticle[]>([]);
-const isCelebrating = ref(false);
+// Luxury Celebration & Membership Pass State
 const showCelebrationModal = ref(false);
 const celebratedTier = ref<KastaTier>('PRO');
+const cardTiltX = ref(0);
+const cardTiltY = ref(0);
+
+const handleCardMouseMove = (e: MouseEvent) => {
+    const el = e.currentTarget as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    cardTiltX.value = -((y - centerY) / centerY) * 6;
+    cardTiltY.value = ((x - centerX) / centerX) * 8;
+};
+
+const resetCardTilt = () => {
+    cardTiltX.value = 0;
+    cardTiltY.value = 0;
+};
 
 const launchConfetti = (theme: KastaTier) => {
-    isCelebrating.value = true;
     celebratedTier.value = theme;
     showCelebrationModal.value = true;
-    playCelebrationChime();
-
-    const colors =
-        theme === 'VIP'
-            ? ['#D4B67A', '#F3DEB0', '#FFFFFF', '#F59E0B', '#FDE68A']
-            : ['#1B44E8', '#7A9BFF', '#FFFFFF', '#60A5FA', '#93C5FD'];
-
-    const count = 52;
-    const particles: ConfettiParticle[] = [];
-    for (let i = 0; i < count; i++) {
-        particles.push({
-            id: i,
-            x: Math.random() * 100,
-            y: Math.random() * 30 - 20,
-            color: colors[Math.floor(Math.random() * colors.length)],
-            size: Math.random() * 8 + 4,
-            rotation: Math.random() * 360,
-            delay: Math.random() * 0.4,
-        });
-    }
-    confettiParticles.value = particles;
-
-    setTimeout(() => {
-        isCelebrating.value = false;
-        confettiParticles.value = [];
-    }, 4500);
+    resetCardTilt();
+    playCelebrationChime(theme);
 };
+
+const memberSinceFormatted = computed(() => {
+    if (currentUser.value?.created_at) {
+        try {
+            const d = new Date(currentUser.value.created_at);
+            return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        } catch {}
+    }
+    const today = new Date();
+    return today.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+});
+
+const paymentConfirmedProText = computed(() => {
+    return 'PAYMENT CONFIRMED · RP 80.000 · PRO MONTHLY';
+});
+
+const paymentConfirmedVipText = computed(() => {
+    return 'PAYMENT CONFIRMED · RP 150.000 · VIP MONTHLY';
+});
 
 // Toast Feedback State
 const toastMessage = ref('');
@@ -2889,108 +2897,220 @@ onUnmounted(() => {
         </div>
 
         <!-- ========================================================================= -->
-        <!-- CELEBRATION UPGRADE MODAL                                                 -->
+        <!-- FLIXREAD / WATOON PAYMENT SUCCESS MODAL OVERLAY SUITE                      -->
         <!-- ========================================================================= -->
         <div
             v-if="showCelebrationModal"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fadeIn"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(6,6,8,0.76)] backdrop-blur-[8px] p-4 sm:p-6 overflow-y-auto animate-fadeIn"
             @click.self="showCelebrationModal = false"
+            @keydown.window.esc="showCelebrationModal = false"
         >
+            <!-- [1] PRO MODAL VIEW -->
             <div
-                class="relative w-full max-w-md rounded-2xl border p-6 text-center shadow-2xl backdrop-blur-2xl animate-scaleUp overflow-hidden"
-                :class="[
-                    celebratedTier === 'VIP'
-                        ? 'border-[#D4B67A]/50 bg-gradient-to-b from-[#242017] via-[#17181B] to-[#121316]'
-                        : 'border-[#1B44E8]/50 bg-gradient-to-b from-[#141b33] via-[#17181B] to-[#121316]'
-                ]"
+                v-if="celebratedTier !== 'VIP'"
+                class="relative z-10 w-full max-w-[480px] mx-auto transition-all duration-300 transform scale-100 opacity-100"
             >
-                <!-- Floating Confetti Burst Elements -->
-                <div class="pointer-events-none absolute inset-0 overflow-hidden">
-                    <span
-                        v-for="p in confettiParticles"
-                        :key="p.id"
-                        class="confetti-dot absolute rounded-sm"
-                        :style="{
-                            left: `${p.x}%`,
-                            top: `${p.y}%`,
-                            backgroundColor: p.color,
-                            width: `${p.size}px`,
-                            height: `${p.size * 0.8}px`,
-                            transform: `rotate(${p.rotation}deg)`,
-                            animationDelay: `${p.delay}s`,
-                        }"
-                    ></span>
-                </div>
-
-                <div class="relative z-10 flex flex-col items-center">
-                    <div
-                        class="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-xl"
-                        :class="[
-                            celebratedTier === 'VIP'
-                                ? 'bg-[#D4B67A]/20 border border-[#D4B67A]/50 text-[#D4B67A]'
-                                : 'bg-[#1B44E8]/20 border border-[#1B44E8]/50 text-[#7A9BFF]'
-                        ]"
+                <div class="w-full bg-[#17181B] border border-[rgba(242,239,234,0.10)] rounded-[20px] p-8 md:p-9 relative flex flex-col items-center text-center shadow-2xl animate-scaleUp overflow-hidden">
+                    <!-- Floating close button (18px monoline glyph, 36x36px hitbox) -->
+                    <button
+                        aria-label="Close modal"
+                        @click="showCelebrationModal = false"
+                        class="absolute top-5 right-5 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/5 text-[#8C8C90] hover:text-[#F2EFEA] transition-colors cursor-pointer"
+                        type="button"
                     >
-                        <Crown v-if="celebratedTier === 'VIP'" class="w-7 h-7" />
-                        <Sparkles v-else class="w-7 h-7" />
+                        <X class="w-[18px] h-[18px]" />
+                    </button>
+
+                    <!-- Ceremony mark: 40px monoline outlined circle (1.5px stroke, #7A9BFF) enclosing monogram "P" -->
+                    <div class="w-10 h-10 rounded-full border-[1.5px] border-[#7A9BFF] flex items-center justify-center mb-5 shrink-0">
+                        <span class="font-semibold text-[17px] text-[#7A9BFF] leading-none">P</span>
                     </div>
 
-                    <h3 class="text-xl font-bold text-white tracking-tight">
-                        Selamat! Kasta {{ celebratedTier }} Berhasil Diaktifkan!
-                    </h3>
+                    <!-- Eyebrow -->
+                    <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#7A9BFF] mb-2">
+                        SUBSCRIPTION ACTIVE
+                    </span>
 
-                    <p class="text-xs text-[#8C8C90] mt-2 leading-relaxed max-w-sm">
-                        Lencana akun Anda di dekat avatar profil kini telah resmi berubah menjadi <strong class="text-white">{{ celebratedTier }}</strong>. Semua fitur, hak tayang resolusi tinggi, dan akses obrolan kreator telah aktif secara instan.
+                    <!-- Headline -->
+                    <h2 class="text-[32px] leading-[36px] font-semibold text-[#F2EFEA] tracking-[-0.025em] mb-2.5">
+                        You're now Pro.
+                    </h2>
+
+                    <!-- Subline -->
+                    <p class="text-[14px] leading-[22px] text-[#8C8C90] max-w-[44ch] mb-7">
+                        Your film library is wider, and creators are one message away. Take your time — there's a lot to watch.
                     </p>
 
-                    <!-- Active Badge Preview -->
-                    <div class="mt-4 px-4 py-2 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-between gap-3 w-full text-xs">
-                        <span class="text-[#8C8C90]">Lencana Baru Anda:</span>
-                        <span
-                            class="px-2.5 py-1 rounded-[6px] text-xs font-bold font-mono tracking-wider flex items-center gap-1.5"
-                            :class="
-                                celebratedTier === 'VIP'
-                                    ? 'bg-[#D4B67A]/25 border border-[#D4B67A]/50 text-[#D4B67A]'
-                                    : 'bg-[#1B44E8]/25 border border-[#1B44E8]/50 text-[#7A9BFF]'
-                            "
-                        >
-                            <Crown v-if="celebratedTier === 'VIP'" class="w-3.5 h-3.5" />
-                            <Sparkles v-else class="w-3.5 h-3.5" />
-                            <span>{{ celebratedTier }}</span>
-                        </span>
+                    <!-- Unlock List (left-aligned, 360px centered) -->
+                    <div class="w-full max-w-[360px] text-left mb-8">
+                        <div class="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8C8C90] mb-3">
+                            WHAT YOU UNLOCKED
+                        </div>
+                        <div class="space-y-2.5">
+                            <div class="flex items-center gap-3">
+                                <Check class="w-4 h-4 text-[#7A9BFF] shrink-0" />
+                                <span class="text-[14px] text-[#F2EFEA] font-normal">Wider film library</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <Check class="w-4 h-4 text-[#7A9BFF] shrink-0" />
+                                <span class="text-[14px] text-[#F2EFEA] font-normal">Private chat with film creators</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <Check class="w-4 h-4 text-[#7A9BFF] shrink-0" />
+                                <span class="text-[14px] text-[#F2EFEA] font-normal">HD streaming, no ads</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="mt-6 flex flex-col gap-2.5 w-full">
+                    <!-- Next-Step Block -->
+                    <div class="w-full max-w-[360px] flex items-center gap-3 mb-6">
+                        <!-- Primary solid cobalt button -->
                         <Link
                             :href="dashboard.url()"
-                            class="w-full py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-95"
-                            :class="[
-                                celebratedTier === 'VIP'
-                                    ? 'bg-[#D4B67A] text-[#0E0F11] hover:bg-[#c4a468]'
-                                    : 'bg-[#1B44E8] text-white hover:bg-[#1537C2]'
-                            ]"
+                            class="flex-1 h-[44px] px-6 rounded-[10px] bg-[#1B44E8] hover:bg-[#1537C2] text-[#F2EFEA] font-medium text-[14px] transition-colors flex items-center justify-center cursor-pointer"
                         >
-                            <span>Kembali ke Dashboard Utama</span>
-                            <ArrowRight class="w-4 h-4" />
+                            Start watching
                         </Link>
+                        <!-- Secondary ghost button -->
+                        <Link
+                            :href="messages.index.url()"
+                            class="h-[44px] px-5 rounded-[10px] border border-[rgba(242,239,234,0.10)] hover:bg-white/5 text-[#F2EFEA] font-medium text-[14px] transition-colors flex items-center justify-center cursor-pointer"
+                        >
+                            Browse creators
+                        </Link>
+                    </div>
 
-                        <div class="flex items-center gap-2 w-full">
-                            <Link
-                                :href="messages.index.url()"
-                                class="flex-1 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-medium text-white flex items-center justify-center gap-1.5 transition-colors"
-                            >
-                                <MessageSquare class="w-3.5 h-3.5" />
-                                <span>Chat Kreator</span>
-                            </Link>
+                    <!-- Divider -->
+                    <div class="w-full border-t border-[rgba(242,239,234,0.08)] mb-4"></div>
 
-                            <button
-                                type="button"
-                                @click="showCelebrationModal = false; scrollToSection('section-plans')"
-                                class="flex-1 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-[#8C8C90] hover:text-white transition-colors cursor-pointer"
-                            >
-                                Lihat Paket Saya
-                            </button>
+                    <!-- Footer Row -->
+                    <div class="w-full flex items-center justify-between text-[11px] text-[#8C8C90]">
+                        <span class="opacity-70 font-mono tracking-tight">{{ paymentConfirmedProText }}</span>
+                        <a
+                            :href="edit.url() + '#section-subscription'"
+                            class="text-[#8C8C90] hover:text-[#F2EFEA] transition-colors underline underline-offset-2"
+                        >
+                            View receipt →
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- [2] VIP MODAL VIEW -->
+            <div
+                v-else
+                class="relative z-10 w-full max-w-[520px] mx-auto transition-all duration-300 transform scale-100 opacity-100"
+            >
+                <div class="w-full bg-[#17181B] border border-[rgba(242,239,234,0.10)] rounded-[20px] p-8 md:p-10 relative flex flex-col items-center text-center overflow-hidden shadow-2xl animate-scaleUp">
+                    <!-- Top Edge Luxury Signal: 1px brass hairline (#D4B67A) spanning centered 40% of modal width -->
+                    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[40%] h-[1px] bg-[#D4B67A]"></div>
+
+                    <!-- Floating close button -->
+                    <button
+                        aria-label="Close modal"
+                        @click="showCelebrationModal = false"
+                        class="absolute top-5 right-5 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/5 text-[#8C8C90] hover:text-[#F2EFEA] transition-colors cursor-pointer z-20"
+                        type="button"
+                    >
+                        <X class="w-[18px] h-[18px]" />
+                    </button>
+
+                    <!-- Ceremony mark: 40px tall geometric crest: 24x24px diamond rotated 45°, 1.5px stroke #D4B67A enclosing monogram "V", flanked by faint horizontal hairlines -->
+                    <div class="h-10 flex items-center justify-center gap-3 mb-5">
+                        <div class="w-6 h-[1px] bg-gradient-to-l from-[#D4B67A]/60 to-transparent"></div>
+                        <div class="w-6 h-6 border-[1.5px] border-[#D4B67A] rotate-45 flex items-center justify-center">
+                            <span class="-rotate-45 font-semibold text-[10px] text-[#D4B67A] leading-none">V</span>
                         </div>
+                        <div class="w-6 h-[1px] bg-gradient-to-r from-[#D4B67A]/60 to-transparent"></div>
+                    </div>
+
+                    <!-- Eyebrow -->
+                    <span class="text-[11px] font-semibold uppercase tracking-[0.20em] text-[#D4B67A] mb-2">
+                        VIP MEMBERSHIP
+                    </span>
+
+                    <!-- Headline -->
+                    <h2 class="text-[32px] leading-[36px] font-semibold text-[#F2EFEA] tracking-[-0.025em] mb-2.5">
+                        Welcome to VIP.
+                    </h2>
+
+                    <!-- Subline -->
+                    <p class="text-[14px] leading-[22px] text-[#8C8C90] max-w-[46ch] mb-6">
+                        The whole library is yours. So is a direct line to the team behind FlixRead.
+                    </p>
+
+                    <!-- Unlock List (4 rows with monoline check in brass #D4B67A) -->
+                    <div class="w-full max-w-[360px] text-left mb-6">
+                        <div class="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8C8C90] mb-3">
+                            WHAT YOU UNLOCKED
+                        </div>
+                        <div class="space-y-2.5">
+                            <div class="flex items-center gap-3">
+                                <Check class="w-4 h-4 text-[#D4B67A] shrink-0" />
+                                <span class="text-[14px] text-[#F2EFEA] font-normal">Entire film library, in 4K</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <Check class="w-4 h-4 text-[#D4B67A] shrink-0" />
+                                <span class="text-[14px] text-[#F2EFEA] font-normal">Private chat with every creator</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <Check class="w-4 h-4 text-[#D4B67A] shrink-0" />
+                                <span class="text-[14px] text-[#F2EFEA] font-normal">Direct line to FlixRead admin</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <Check class="w-4 h-4 text-[#D4B67A] shrink-0" />
+                                <span class="text-[14px] text-[#F2EFEA] font-normal">Priority support and early access</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VIP Membership Card (360px wide, 96px tall, radius 14px, surface #1E1F23, border 1px solid rgba(212,182,122,0.30)) -->
+                    <div class="w-full max-w-[360px] h-[96px] rounded-[14px] bg-[#1E1F23] border border-[#D4B67A]/30 p-4 relative flex items-center justify-between mb-7 text-left overflow-hidden">
+                        <!-- Background subtle diamond watermark -->
+                        <div class="absolute right-6 top-1/2 -translate-y-1/2 w-28 h-28 border border-[#D4B67A]/10 rotate-45 pointer-events-none"></div>
+                        <!-- Left Column: Details -->
+                        <div class="z-10 flex flex-col justify-center">
+                            <span class="text-[9px] font-semibold tracking-[0.20em] uppercase text-[#D4B67A] mb-1">VIP MEMBER</span>
+                            <span class="text-[16px] font-semibold text-[#F2EFEA] leading-tight">{{ currentUser?.name || 'Rian Pratama' }}</span>
+                            <span class="text-[11px] text-[#8C8C90] mt-1 font-mono">Member since {{ memberSinceFormatted }}</span>
+                        </div>
+                        <!-- Right Column: Monogram & Brass Insignia -->
+                        <div class="z-10 flex items-center justify-center pr-2">
+                            <span class="font-semibold text-[24px] text-[#D4B67A]">V</span>
+                        </div>
+                    </div>
+
+                    <!-- Next-Step Block -->
+                    <div class="w-full max-w-[360px] flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+                        <!-- Primary luxury ghost button -->
+                        <Link
+                            :href="dashboard.url()"
+                            class="w-full sm:w-auto flex-1 h-[44px] px-6 rounded-[10px] border border-[#D4B67A] hover:bg-[#D4B67A]/10 text-[#D4B67A] font-medium text-[14px] transition-colors flex items-center justify-center cursor-pointer"
+                        >
+                            Enter FlixRead
+                        </Link>
+                        <!-- Secondary text link -->
+                        <Link
+                            :href="edit.url() + '#section-subscription'"
+                            class="text-[14px] text-[#8C8C90] hover:text-[#F2EFEA] transition-colors inline-flex items-center gap-1 cursor-pointer"
+                        >
+                            <span>View your membership</span>
+                            <ChevronRight class="w-4 h-4" />
+                        </Link>
+                    </div>
+
+                    <!-- Divider -->
+                    <div class="w-full border-t border-[rgba(242,239,234,0.08)] mb-4"></div>
+
+                    <!-- Footer Row -->
+                    <div class="w-full flex items-center justify-between text-[11px] text-[#8C8C90]">
+                        <span class="opacity-70 font-mono tracking-tight">{{ paymentConfirmedVipText }}</span>
+                        <a
+                            :href="edit.url() + '#section-subscription'"
+                            class="text-[#8C8C90] hover:text-[#F2EFEA] transition-colors underline underline-offset-2"
+                        >
+                            View receipt →
+                        </a>
                     </div>
                 </div>
             </div>
@@ -3229,19 +3349,13 @@ onUnmounted(() => {
     animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Confetti Falling Keyframes */
-@keyframes confettiFall {
+/* Luxury Modal Subtle Shimmer & Soft Entrance */
+@keyframes luxurySheen {
     0% {
-        opacity: 1;
-        transform: translateY(0) rotate(0deg);
+        background-position: -200% 0;
     }
     100% {
-        opacity: 0;
-        transform: translateY(320px) rotate(720deg);
+        background-position: 200% 0;
     }
-}
-
-.confetti-dot {
-    animation: confettiFall 2.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 </style>
