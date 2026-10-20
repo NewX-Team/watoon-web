@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\CreatorType;
 use App\Enums\Role;
 use App\Enums\UserTier;
 use App\Models\User;
@@ -50,11 +51,30 @@ class UserFactory extends Factory
     /**
      * Indicate that the model is a kreator.
      */
-    public function kreator(): static
+    public function kreator(CreatorType|string|null $type = CreatorType::Film): static
     {
+        $creatorType = is_string($type) ? CreatorType::tryFrom($type) : $type;
+
         return $this->state(fn () => [
             'role' => Role::Kreator,
+            'creator_type' => $creatorType ?? CreatorType::Film,
         ]);
+    }
+
+    /**
+     * Indicate that the model is a film kreator.
+     */
+    public function filmKreator(): static
+    {
+        return $this->kreator(CreatorType::Film);
+    }
+
+    /**
+     * Indicate that the model is a novel kreator.
+     */
+    public function novelKreator(): static
+    {
+        return $this->kreator(CreatorType::Novel);
     }
 
     public function free(): static
