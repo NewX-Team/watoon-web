@@ -4,6 +4,7 @@ namespace App\Actions\Fortify;
 
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
+use App\Enums\CreatorType;
 use App\Enums\Role;
 use App\Enums\UserTier;
 use App\Models\User;
@@ -30,11 +31,19 @@ class CreateNewUser implements CreatesNewUsers
             ? Role::from($input['role'])
             : Role::User;
 
+        $creatorType = null;
+        if ($role === Role::Kreator) {
+            $creatorType = isset($input['creator_type']) && in_array($input['creator_type'], [CreatorType::Film->value, CreatorType::Novel->value], true)
+                ? CreatorType::from($input['creator_type'])
+                : CreatorType::Film;
+        }
+
         return User::create([
             'name' => $input['name'],
             'email' => $input['email'],
             'password' => $input['password'],
             'role' => $role,
+            'creator_type' => $creatorType,
             'tier' => UserTier::Free,
             'subscription_expires_at' => null,
         ]);

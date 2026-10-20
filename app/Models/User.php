@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CreatorType;
 use App\Enums\Role;
 use App\Enums\SubscriptionStatus;
 use App\Enums\UserTier;
@@ -23,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $bio
  * @property string|null $phone
  * @property Role $role
+ * @property CreatorType|null $creator_type
  * @property UserTier $tier
  * @property Carbon|null $subscription_expires_at
  * @property Carbon|null $email_verified_at
@@ -35,7 +37,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read Collection<int, Subscription> $subscriptions
  */
-#[Fillable(['name', 'username', 'email', 'bio', 'phone', 'password', 'role', 'tier', 'subscription_expires_at'])]
+#[Fillable(['name', 'username', 'email', 'bio', 'phone', 'password', 'role', 'creator_type', 'tier', 'subscription_expires_at'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -51,6 +53,7 @@ class User extends Authenticatable
     {
         return [
             'role' => Role::class,
+            'creator_type' => CreatorType::class,
             'tier' => UserTier::class,
             'subscription_expires_at' => 'datetime',
             'email_verified_at' => 'datetime',
@@ -71,6 +74,16 @@ class User extends Authenticatable
     public function isKreator(): bool
     {
         return $this->role === Role::Kreator;
+    }
+
+    public function isFilmKreator(): bool
+    {
+        return $this->isKreator() && ($this->creator_type === CreatorType::Film || $this->creator_type === null);
+    }
+
+    public function isNovelKreator(): bool
+    {
+        return $this->isKreator() && $this->creator_type === CreatorType::Novel;
     }
 
     public function isAdmin(): bool

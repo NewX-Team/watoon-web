@@ -43,6 +43,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user ? array_merge($user->toArray(), [
                     'tier' => $user->effectiveTier()->value,
+                    'creator_type' => $user->creator_type?->value,
                     'effective_tier' => $user->effectiveTier()->value,
                     'has_active_subscription' => $user->hasActiveSubscription(),
                     'subscription_expires_at' => $user->subscription_expires_at?->toIso8601String(),
