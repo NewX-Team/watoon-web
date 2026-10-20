@@ -240,6 +240,12 @@ const selectedRole = ref<'viewer' | 'film' | 'novel'>('viewer');
                     name="role"
                     :value="selectedRole === 'viewer' ? 'user' : 'kreator'"
                 />
+                <input
+                    v-if="selectedRole !== 'viewer'"
+                    type="hidden"
+                    name="creator_type"
+                    :value="selectedRole"
+                />
             </div>
 
             <!-- Terms and Privacy Checkbox -->
