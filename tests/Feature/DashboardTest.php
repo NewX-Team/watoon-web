@@ -17,13 +17,36 @@ test('authenticated user sees user dashboard', function () {
         ->assertInertia(fn (Assert $page) => $page->component('dashboard/User'));
 });
 
-test('authenticated kreator sees kreator dashboard', function () {
-    $user = User::factory()->kreator()->create();
+test('authenticated film kreator sees kreator film dashboard', function () {
+    $user = User::factory()->filmKreator()->create();
 
     $this->actingAs($user)
         ->get(route('dashboard'))
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->component('dashboard/Kreator'));
+        ->assertInertia(fn (Assert $page) => $page->component('dashboard/KreatorFilm'));
+});
+
+test('authenticated novel kreator sees kreator novel dashboard', function () {
+    $user = User::factory()->novelKreator()->create();
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('dashboard/KreatorNovel'));
+});
+
+test('authenticated kreator can switch between film and novel dashboard via type query parameter', function () {
+    $user = User::factory()->filmKreator()->create();
+
+    $this->actingAs($user)
+        ->get(route('dashboard', ['type' => 'novel']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('dashboard/KreatorNovel'));
+
+    $this->actingAs($user)
+        ->get(route('dashboard', ['type' => 'film']))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('dashboard/KreatorFilm'));
 });
 
 test('authenticated admin sees admin dashboard', function () {

@@ -21,6 +21,7 @@ export type User = {
     bio?: string | null;
     phone?: string | null;
     role: 'user' | 'kreator' | 'admin';
+    creator_type?: 'film' | 'novel' | null;
     tier?: 'free' | 'pro' | 'vip';
     subscription_expires_at?: string | null;
     subscription_expires_formatted?: string | null;
