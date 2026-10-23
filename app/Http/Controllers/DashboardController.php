@@ -43,6 +43,7 @@ class DashboardController extends Controller
 
         return Inertia::render('dashboard/KreatorFilm', [
             'creatorType' => 'film',
+            'initialTab' => $request->query('tab', 'dashboard'),
         ]);
     }
 }
