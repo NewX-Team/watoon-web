@@ -14,6 +14,7 @@ void createInertiaApp({
         switch (true) {
             case name === 'Welcome':
             case name === 'dashboard/User':
+            case name === 'dashboard/KreatorFilm':
             case name.startsWith('films/'):
             case name.startsWith('messages/'):
             case name === 'settings/UserSettings':
