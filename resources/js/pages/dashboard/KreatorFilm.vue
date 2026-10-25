@@ -39,6 +39,11 @@ import {
     Clock,
     DollarSign,
     Sparkles,
+    Heart,
+    Bookmark,
+    Info,
+    Globe,
+    Layers,
 } from '@lucide/vue';
 import { dashboard, logout } from '@/routes';
 import type { Auth } from '@/types/auth';
@@ -69,7 +74,7 @@ const userInitials = computed(() => {
 
 // Navigation state: 'dashboard' | 'content' | 'analytics' | 'earnings'
 const activeTab = ref<'dashboard' | 'content' | 'analytics' | 'earnings'>(
-    props.initialTab === 'content' ? 'content' : 'dashboard'
+    (['content', 'analytics', 'earnings'].includes(props.initialTab) ? props.initialTab : 'dashboard') as any
 );
 
 const switchTab = (tab: 'dashboard' | 'content' | 'analytics' | 'earnings') => {
@@ -265,19 +270,18 @@ const initialFilms: FilmItem[] = [
     },
     {
         id: 4,
-        title: 'Bayang Semu',
+        title: 'Sudut Gelap',
         type: 'Feature Film',
-        genre: 'Psychological Thriller',
+        genre: 'Neo-Noir Thriller',
         year: '2025',
-        duration: '01:25:00',
-        status: 'draft',
-        statusLabel: 'Draft',
-        lastEdited: 'Draft · Last edited 2h ago',
-        views: 0,
-        viewsFormatted: '—',
-        revenue: 0,
-        revenueFormatted: '—',
-        thumb: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDv8zKp89Ba98n4iesC0SGSlW85bMHD9YG4DsAChN45Clfkf1ZHJs_EXyvgB6eGqikCx0sA8X-rDmeiZMRgrVdH4f5zgD3AkkYT12lle0WSqv-7YRUqGAsffviSCUJHFGCLqxsFPu96NIj-OUDmxLgBqFX5JrL6ptJDiO42MYVP03gPu682thMHXNwdnDUUcTf497l-v7CF1Tn4jvPHo3sS3WEXx91zObfv9CtDx3INEigTlcOnAY7d',
+        duration: '01:52:00',
+        status: 'published',
+        statusLabel: 'Published',
+        views: 112800,
+        viewsFormatted: '112.8K',
+        revenue: 1850000,
+        revenueFormatted: 'Rp 1.85M',
+        thumb: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCrHDpTATPkMwr5Tth0LT0Qajqp_Ubid4wrVsURGY40n98mCjdN5ggq1cW1JlawpBjWEtFWxXGkVok96KfmeChYzEx_TM-4Q7-hIomTrLbjEo73tmK2SlasJTwULpmXh_CyJFAGdWUroP9rI6CARD_EiB8fHf_JhHN3EjLoBRG0mwL2SfjYCV5NYl5UvVkx8-LGozeOBnzUzu6lnfvXWvdzxJpb2vMqeN5V8RuekM9PMcG70TaGOf90',
         poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCNRB7XvSei3KWYMX3gNXuHFg9_ttujmorBjYDH21JL6rYrI9zawflhqc9-qYo55uVJCESM5rMPtu4YTWeGRf8OaqmqMDRgQozvPLP-NFLp7UnzD4JvajXWSUyEv2bEids1YJpxZanuPUSIDT80qWw-cqMY1EyYYU2I2TrIy01XZll5YYPL7R2IebnN_hMZHKm0Nwe1sQXRMTIU78IsNK-3KkiSIC7x5vovBZEGgV5Gw_iSg1cDKoBw',
         synopsis: 'Eksplorasi optik dan rekaman pita seluloid 35mm yang merekam entitas bayangan tak dikenal di ruang gelap studio.',
     },
@@ -301,21 +305,20 @@ const initialFilms: FilmItem[] = [
     },
     {
         id: 6,
-        title: 'Sunyi',
+        title: 'Garis Sunyi',
         type: 'Short Film',
-        genre: 'Experimental Noir',
+        genre: 'Art House Documentary',
         year: '2025',
-        duration: '01:15:20',
-        status: 'processing',
-        statusLabel: 'Processing',
-        progress: 68,
-        views: 0,
-        viewsFormatted: '—',
-        revenue: 0,
-        revenueFormatted: '—',
-        thumb: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBIeDNufrQDI1tirsHT2WHdu7z-0pvjiiAdDpWwTV5YhjGn9yzCOIhDHpVtbIGtHLHF3KdKIO6VYrJFY-qHrAV4tf_1hPjP7kPw9gqxUKrRoEKr794JFR9Tkt6kX91dJtRFIXAkDZLiOMJdJcxmQAIiUimWMB3qWigsfqliF80uEv8eqSVU61PGIhNyVT2y9Me0tp-54_dXs9pIpgT1DD__u4qnplHD3EAt6s1EjWaaO_2YBxpGZZep',
+        duration: '00:28:40',
+        status: 'published',
+        statusLabel: 'Published',
+        views: 31400,
+        viewsFormatted: '31.4K',
+        revenue: 420000,
+        revenueFormatted: 'Rp 420K',
+        thumb: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDLDkgnlK6HuUAimQu9kdMoSv1pK96DxbauPwc_dMA5CteO0yWUJHAbL7fUwlcLfU3rrEOe_BjsVYGKFYgLT7gm04QrIpwaeO_YHaGosZXYwiFAvqTwb2VwvFeLYdFokUmqRxL1_HDPIDHos9ZdY3ESlqtl8EDzIv4o9485Af-ARW3hWXsVWw2VQ_1if_wrLDY1XmA4R3P5Uyr6cRVmIPafAoRq2V7d49LA-I_GGJ0zno8JqpNQj0Wu',
         poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAPJZ3HaMzt88VuI8vveBpWUJoKNTWgqhdO9meVjJbOHb6zYz9cYXzl4K44CvvkxCc5gYDMM5m0aoRfIDvhXOUOSlaRTzanr1qwTqDM-am9HkiVvyKQfVQOU2cYu3uaf1c8X8h6uhzDTAifeg2SQfJft6K3IvDn1jRlha5bcJWMKF1hdRiSuqceW-PfM84956wFZS5RMBTVCRAidanh5P0lzHw1w4VAlRV8sOOO1pnWBjy-9ic8e-x3',
-        synopsis: 'Eksperimen audio visual di aula kosong dengan tata cahaya terarah, mengeksplorasi gema keheningan batin.',
+        synopsis: 'Eksperimen audio visual di lereng hening berkabut, mengeksplorasi gema keheningan batin seniman.',
     },
     {
         id: 7,
@@ -655,6 +658,146 @@ const submitPayout = () => {
     triggerToast('Permintaan penarikan Rp 4.240.000 sedang diproses ke rekening Anda.');
 };
 
+// =========================================================================
+// ANALYTICS STATE & DATA
+// =========================================================================
+
+// Analytics Time Range Filter
+const analyticsTimeRange = ref<'7D' | '30D' | '90D' | 'All'>('30D');
+const isAnalyticsDateDropdownOpen = ref(false);
+const selectedAnalyticsPeriodLabel = computed(() => {
+    switch (analyticsTimeRange.value) {
+        case '7D':
+            return 'Last 7 days';
+        case '30D':
+            return 'Last 30 days';
+        case '90D':
+            return 'Last 90 days';
+        case 'All':
+            return 'All time';
+    }
+});
+
+// Selected Film for Analytics
+const selectedAnalyticsFilmId = ref<number>(1);
+const isFilmSwitcherOpen = ref(false);
+const filmSwitcherSearch = ref('');
+
+const selectedAnalyticsFilm = computed(() => {
+    return allFilms.value.find((f) => f.id === selectedAnalyticsFilmId.value) || allFilms.value[0];
+});
+
+const filteredSwitcherFilms = computed(() => {
+    if (!filmSwitcherSearch.value.trim()) {
+        return allFilms.value;
+    }
+    const q = filmSwitcherSearch.value.toLowerCase();
+    return allFilms.value.filter(
+        (f) => f.title.toLowerCase().includes(q) || f.genre.toLowerCase().includes(q) || f.type.toLowerCase().includes(q)
+    );
+});
+
+const selectAnalyticsFilm = (film: FilmItem) => {
+    selectedAnalyticsFilmId.value = film.id;
+    isFilmSwitcherOpen.value = false;
+    filmSwitcherSearch.value = '';
+    triggerToast(`Memuat telemetri performa: ${film.title}`);
+};
+
+// Analytics Interactive Chart Points
+const analyticsPoints = [
+    { x: 40, y: 180, date: '24 Sep 2025', views: '1,420 views', label: '24 Sep' },
+    { x: 180, y: 155, date: '28 Sep 2025', views: '1,890 views', label: '28 Sep' },
+    { x: 300, y: 135, date: '1 Oct 2025', views: '2,140 views', label: '1 Oct' },
+    { x: 420, y: 110, date: '8 Oct 2025', views: '2,680 views', label: '8 Oct' },
+    { x: 540, y: 80, date: '15 Oct 2025', views: '3,050 views', label: '15 Oct' },
+    { x: 640, y: 45, date: '18 Oct 2025', views: '3,420 views (Peak)', label: '18 Oct' },
+    { x: 760, y: 90, date: '22 Oct 2025', views: '2,810 views', label: '22 Oct' },
+    { x: 880, y: 65, date: 'Today', views: '3,180 views', label: 'Today' },
+];
+
+const activeChartPoint = ref(analyticsPoints[5]);
+
+// Audience Retention State
+const selectedRetentionEpisode = ref(1);
+const isRetentionDropdownOpen = ref(false);
+
+const retentionEpisodes = [
+    { number: 1, title: 'The Beginning', dropPoint: '32:40', dropRate: '4.2%', reason: 'during the prolonged dialog sequence', views: '24,180', avgCompletion: '78.4%' },
+    { number: 2, title: 'Contact', dropPoint: '18:15', dropRate: '3.1%', reason: 'scene transition to flashback sequence', views: '18,420', avgCompletion: '74.1%' },
+    { number: 3, title: 'Descent', dropPoint: '24:50', dropRate: '3.8%', reason: 'slow pacing in underground tunnel sequence', views: '15,680', avgCompletion: '69.2%' },
+    { number: 4, title: 'Rupture', dropPoint: '14:20', dropRate: '5.4%', reason: 'climax confrontation scene suspense cut', views: '12,340', avgCompletion: '64.8%' },
+    { number: 5, title: 'Silence', dropPoint: '28:10', dropRate: '4.6%', reason: 'extended psychological isolation moment', views: '9,240', avgCompletion: '58.1%' },
+    { number: 6, title: 'Return', dropPoint: '35:20', dropRate: '6.2%', reason: 'pre-epilogue credit roll transition', views: '4,350', avgCompletion: '51.7%' },
+];
+
+const currentRetentionData = computed(() => {
+    return retentionEpisodes.find((e) => e.number === selectedRetentionEpisode.value) || retentionEpisodes[0];
+});
+
+// Audience Demographics & Traffic
+const audienceAgeCohorts = [
+    { range: '13–17', percentage: 8, isDominant: false },
+    { range: '18–24', percentage: 26, isDominant: false },
+    { range: '25–34 (Dominant)', percentage: 34, isDominant: true },
+    { range: '35–44', percentage: 21, isDominant: false },
+    { range: '45+', percentage: 11, isDominant: false },
+];
+
+const topLocations = [
+    { city: 'Jakarta', percentage: '28.4%', width: '28.4%', isDominant: true },
+    { city: 'Bandung', percentage: '14.2%', width: '14.2%', isDominant: false },
+    { city: 'Surabaya', percentage: '11.8%', width: '11.8%', isDominant: false },
+    { city: 'Medan', percentage: '6.3%', width: '6.3%', isDominant: false },
+    { city: 'Denpasar', percentage: '4.1%', width: '4.1%', isDominant: false },
+];
+
+const trafficSources = [
+    { source: 'Home carousel', percentage: '42.1%', width: '42.1%', isDominant: true },
+    { source: 'Search results', percentage: '28.7%', width: '28.7%', isDominant: false },
+    { source: 'Creator profile', percentage: '16.4%', width: '16.4%', isDominant: false },
+    { source: 'Direct link', percentage: '8.9%', width: '8.9%', isDominant: false },
+    { source: 'Other', percentage: '3.9%', width: '3.9%', isDominant: false },
+];
+
+const communityComments = [
+    {
+        id: 1,
+        author: 'Rendra Wijaya',
+        badge: 'PRO',
+        badgeColor: 'border-[#1B44E8]/50 text-[#7A9BFF]',
+        time: '3 days ago',
+        text: 'The sound design transition in Episode 3 at 14:20 was masterclass grade. The sudden isolation of the protagonist\'s breath completely sold the dread.',
+        likes: 142,
+    },
+    {
+        id: 2,
+        author: 'Alya Kusuma',
+        badge: 'VIP',
+        badgeColor: 'border-[#E5B869]/50 text-[#E5B869]',
+        time: '5 days ago',
+        text: 'Episode 4 pacing felt slightly sluggish compared to the opener, but the payoff in the finale tied all the psychological threads seamlessly.',
+        likes: 89,
+    },
+    {
+        id: 3,
+        author: 'Dimas Aditya',
+        badge: 'FREE',
+        badgeColor: 'border-white/20 text-[#8C8C90]',
+        time: '1 week ago',
+        text: 'Incredible color grading palette! The blue midnight cast over Jakarta makes it look like an international A24 production.',
+        likes: 56,
+    },
+];
+
+onMounted(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    if (tabParam && ['dashboard', 'content', 'analytics', 'earnings'].includes(tabParam)) {
+        activeTab.value = tabParam as any;
+    }
+});
+
 const handleLogout = () => {
     router.post(logout.url());
 };
@@ -662,7 +805,17 @@ const handleLogout = () => {
 
 <template>
     <div class="min-h-screen bg-[#0E0F11] text-[#F2EFEA] antialiased selection:bg-[#1B44E8] selection:text-white pb-24">
-        <Head :title="activeTab === 'content' ? 'FlixRead Creator Studio — Film Library' : 'FlixRead Creator Studio — Film Dashboard'" />
+        <Head
+            :title="
+                activeTab === 'analytics'
+                    ? 'WATOON Creator Studio — Performance Analytics'
+                    : activeTab === 'content'
+                    ? 'WATOON Creator Studio — Film Library'
+                    : activeTab === 'earnings'
+                    ? 'WATOON Creator Studio — Royalty & Earnings'
+                    : 'WATOON Creator Studio — Film Dashboard'
+            "
+        />
 
         <!-- Toast Feedback Notification -->
         <transition
@@ -1843,76 +1996,726 @@ const handleLogout = () => {
         </main>
 
         <!-- ============================================================== -->
-        <!-- VIEW 3: ANALYTICS (TELEMETRY TAB)                              -->
+        <!-- VIEW 3: ANALYTICS (PERFORMANCE TAB)                             -->
         <!-- ============================================================== -->
         <main v-else-if="activeTab === 'analytics'" class="mx-auto max-w-7xl space-y-8 px-4 pt-10 pb-16 md:px-8">
-            <div class="flex items-center justify-between border-b border-white/[0.08] pb-6">
-                <div>
-                    <p class="font-mono text-[11px] uppercase tracking-[0.12em] text-[#8C8C90] mb-1 font-semibold">ANALYTICS</p>
-                    <h1 class="text-2xl font-semibold tracking-tight text-[#F2EFEA] sm:text-3xl">Audience &amp; Revenue Telemetry</h1>
-                    <p class="text-sm text-[#8C8C90] mt-0.5">Analitik retensi tayangan, distribusi geografis, dan demografi penonton.</p>
+            <!-- 2. PAGE HEADER -->
+            <section class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-white/[0.08]">
+                <div class="space-y-1">
+                    <div class="font-mono text-[11px] tracking-[0.14em] uppercase text-[#7A9BFF] font-semibold">
+                        ANALYTICS
+                    </div>
+                    <h1 class="text-2xl font-semibold tracking-tight text-[#F2EFEA] sm:text-3xl">
+                        Performance
+                    </h1>
+                    <p class="text-sm text-[#8C8C90]">
+                        Detailed metrics for a single film.
+                    </p>
                 </div>
-                <button
-                    type="button"
-                    @click="triggerToast('Laporan analitik bulan ini diekspor ke format CSV.')"
-                    class="px-4 py-2 rounded-lg border border-white/15 bg-white/[0.04] text-xs font-mono text-[#F2EFEA] hover:bg-white/[0.08] transition-colors"
-                >
-                    Export CSV
-                </button>
-            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div class="p-6 rounded-xl bg-[#141518] border border-white/[0.06]">
-                    <span class="font-mono text-xs text-[#8C8C90] uppercase">Average Completion Rate</span>
-                    <div class="font-mono text-3xl font-semibold text-[#F2EFEA] mt-2">78.4%</div>
-                    <span class="text-xs text-[#7A9BFF] mt-1 block">↑ +4.2% di atas rata-rata industri bioskop</span>
+                <!-- Date Range Selector -->
+                <div class="relative flex items-center self-start md:self-auto">
+                    <button
+                        type="button"
+                        @click="isAnalyticsDateDropdownOpen = !isAnalyticsDateDropdownOpen"
+                        class="flex items-center gap-2 rounded-lg border border-white/10 bg-[#141518] px-3.5 py-1.5 text-xs text-[#F2EFEA] hover:bg-[#1E2023] transition-colors cursor-pointer"
+                    >
+                        <Calendar class="h-3.5 w-3.5 text-[#8C8C90]" />
+                        <span>{{ selectedAnalyticsPeriodLabel }}</span>
+                        <ChevronDown class="h-3.5 w-3.5 text-[#8C8C90]" />
+                    </button>
+
+                    <!-- Dropdown -->
+                    <div
+                        v-if="isAnalyticsDateDropdownOpen"
+                        class="absolute right-0 top-full mt-1.5 w-40 rounded-xl border border-white/10 bg-[#17181B] py-1 shadow-2xl z-30 font-mono text-xs"
+                    >
+                        <button
+                            v-for="r in (['7D', '30D', '90D', 'All'] as const)"
+                            :key="r"
+                            type="button"
+                            @click="analyticsTimeRange = r; isAnalyticsDateDropdownOpen = false"
+                            class="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-white/[0.04] transition-colors"
+                            :class="analyticsTimeRange === r ? 'text-[#7A9BFF] font-semibold' : 'text-[#8C8C90]'"
+                        >
+                            <span>{{ r === '7D' ? 'Last 7 days' : r === '30D' ? 'Last 30 days' : r === '90D' ? 'Last 90 days' : 'All time' }}</span>
+                            <Check v-if="analyticsTimeRange === r" class="h-3.5 w-3.5" />
+                        </button>
+                    </div>
                 </div>
-                <div class="p-6 rounded-xl bg-[#141518] border border-white/[0.06]">
-                    <span class="font-mono text-xs text-[#8C8C90] uppercase">Repeat Viewer Ratio</span>
-                    <div class="font-mono text-3xl font-semibold text-[#F2EFEA] mt-2">42.1%</div>
-                    <span class="text-xs text-[#7A9BFF] mt-1 block">Penonton yang menonton lebih dari 2 episode</span>
+            </section>
+
+            <!-- 3. FILM SELECTOR BAR WITH ANCHORED SWITCHER DROPDOWN -->
+            <section class="relative">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 rounded-xl bg-[#141518] border border-white/[0.08] gap-4">
+                    <!-- Film Primary Info -->
+                    <div class="flex items-center gap-3.5">
+                        <div class="relative w-20 h-11 rounded-lg overflow-hidden flex-shrink-0 border border-white/10 bg-[#1E2023]">
+                            <img
+                                :src="selectedAnalyticsFilm.thumb"
+                                :alt="selectedAnalyticsFilm.title"
+                                class="w-full h-full object-cover"
+                            />
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-base font-semibold text-[#F2EFEA] tracking-tight">
+                                    {{ selectedAnalyticsFilm.title }}
+                                </span>
+                                <span class="px-2 py-0.5 rounded-full border border-white/15 text-[#8C8C90] font-mono text-[9px] uppercase tracking-wider">
+                                    {{ selectedAnalyticsFilm.type }}
+                                </span>
+                            </div>
+                            <p class="font-mono text-xs text-[#8C8C90] mt-0.5">
+                                {{ selectedAnalyticsFilm.episodes ? `${selectedAnalyticsFilm.episodes} · ` : '' }}{{ selectedAnalyticsFilm.genre }} · Published {{ selectedAnalyticsFilm.year }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Film Actions & Dropdown Trigger -->
+                    <div class="flex items-center gap-3 self-end sm:self-auto">
+                        <button
+                            type="button"
+                            @click="triggerToast(`Membuka pemutar preview untuk ${selectedAnalyticsFilm.title}`)"
+                            class="text-[#7A9BFF] hover:text-white font-mono text-xs flex items-center gap-1 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-white/[0.04]"
+                        >
+                            <span>View film</span>
+                            <ArrowUpRight class="h-3.5 w-3.5" />
+                        </button>
+
+                        <div class="relative">
+                            <button
+                                type="button"
+                                @click="isFilmSwitcherOpen = !isFilmSwitcherOpen"
+                                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-[#17181B] hover:bg-[#1E2023] text-[#F2EFEA] text-xs font-medium transition-colors cursor-pointer"
+                            >
+                                <span>Switch film</span>
+                                <ChevronDown class="h-3.5 w-3.5 text-[#8C8C90]" />
+                            </button>
+
+                            <!-- Interactive Film Switcher Flyout Panel -->
+                            <div
+                                v-if="isFilmSwitcherOpen"
+                                class="absolute right-0 top-full mt-2 w-80 z-40 rounded-xl bg-[#17181B] border border-white/15 p-2 shadow-2xl"
+                            >
+                                <div class="px-2 py-1.5 mb-1.5 border-b border-white/10">
+                                    <div class="relative">
+                                        <Search class="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[#8C8C90]" />
+                                        <input
+                                            v-model="filmSwitcherSearch"
+                                            type="text"
+                                            placeholder="Search films…"
+                                            class="w-full pl-8 pr-2.5 py-1.5 rounded-lg bg-[#0E0F11] border border-white/10 text-xs text-[#F2EFEA] placeholder-[#8C8C90] focus:outline-none focus:border-[#1B44E8]"
+                                        />
+                                    </div>
+                                </div>
+                                <div class="max-h-64 overflow-y-auto space-y-1 pr-1">
+                                    <div
+                                        v-for="film in filteredSwitcherFilms"
+                                        :key="film.id"
+                                        @click="selectAnalyticsFilm(film)"
+                                        class="flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors"
+                                        :class="film.id === selectedAnalyticsFilmId ? 'bg-white/[0.08] border border-white/15' : 'hover:bg-white/[0.04] border border-transparent'"
+                                    >
+                                        <div class="flex items-center gap-2.5 min-w-0">
+                                            <div class="w-10 h-6 rounded overflow-hidden flex-shrink-0 bg-[#0E0F11]">
+                                                <img :src="film.thumb" :alt="film.title" class="w-full h-full object-cover" />
+                                            </div>
+                                            <div class="truncate">
+                                                <p class="text-xs font-medium text-[#F2EFEA] truncate">{{ film.title }}</p>
+                                                <p class="font-mono text-[10px] text-[#8C8C90]">{{ film.viewsFormatted }} views</p>
+                                            </div>
+                                        </div>
+                                        <Check v-if="film.id === selectedAnalyticsFilmId" class="h-4 w-4 text-[#7A9BFF] flex-shrink-0" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="p-6 rounded-xl bg-[#141518] border border-white/[0.06]">
-                    <span class="font-mono text-xs text-[#8C8C90] uppercase">Peak Streaming Hours</span>
-                    <div class="font-mono text-3xl font-semibold text-[#F2EFEA] mt-2">20:00 - 23:30</div>
-                    <span class="text-xs text-[#8C8C90] mt-1 block">WIB (Waktu Indonesia Barat)</span>
+            </section>
+
+            <!-- 4. KPI ROW (4 STAT CARDS, EQUAL WIDTH) -->
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Card 1 -->
+                <div class="p-4 rounded-xl bg-[#141518] border border-white/[0.08] flex flex-col justify-between">
+                    <div>
+                        <span class="font-mono text-[11px] text-[#8C8C90] tracking-wider uppercase">TOTAL VIEWS</span>
+                        <div class="text-2xl font-semibold text-[#F2EFEA] font-mono mt-1">
+                            {{ selectedAnalyticsFilm.views ? selectedAnalyticsFilm.views.toLocaleString('id-ID') : '84,210' }}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 mt-3 pt-2 border-t border-white/[0.06] text-[#7A9BFF] font-mono text-xs">
+                        <TrendingUp class="h-3.5 w-3.5" />
+                        <span>+18.2% vs last period</span>
+                    </div>
                 </div>
-            </div>
+
+                <!-- Card 2 -->
+                <div class="p-4 rounded-xl bg-[#141518] border border-white/[0.08] flex flex-col justify-between">
+                    <div>
+                        <span class="font-mono text-[11px] text-[#8C8C90] tracking-wider uppercase">WATCH TIME</span>
+                        <div class="text-2xl font-semibold text-[#F2EFEA] font-mono mt-1">
+                            6,842 <span class="text-xs text-[#8C8C90] font-normal font-sans">hrs</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 mt-3 pt-2 border-t border-white/[0.06] text-[#7A9BFF] font-mono text-xs">
+                        <TrendingUp class="h-3.5 w-3.5" />
+                        <span>+11.4% vs last period</span>
+                    </div>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="p-4 rounded-xl bg-[#141518] border border-white/[0.08] flex flex-col justify-between">
+                    <div>
+                        <span class="font-mono text-[11px] text-[#8C8C90] tracking-wider uppercase">AVG. COMPLETION</span>
+                        <div class="text-2xl font-semibold text-[#F2EFEA] font-mono mt-1">
+                            62.4%
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 mt-3 pt-2 border-t border-white/[0.06] text-[#7A9BFF] font-mono text-xs">
+                        <TrendingUp class="h-3.5 w-3.5" />
+                        <span>+3.1% vs last period</span>
+                    </div>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="p-4 rounded-xl bg-[#141518] border border-white/[0.08] flex flex-col justify-between">
+                    <div>
+                        <span class="font-mono text-[11px] text-[#8C8C90] tracking-wider uppercase">EST. REVENUE</span>
+                        <div class="text-2xl font-semibold text-[#F2EFEA] font-mono mt-1">
+                            {{ selectedAnalyticsFilm.revenueFormatted !== '—' ? selectedAnalyticsFilm.revenueFormatted : 'Rp 1.240.000' }}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 mt-3 pt-2 border-t border-white/[0.06] text-[#7A9BFF] font-mono text-xs">
+                        <TrendingUp class="h-3.5 w-3.5" />
+                        <span>+22.7% vs last period</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. VIEWS OVER TIME CHART -->
+            <section class="p-5 rounded-xl bg-[#141518] border border-white/[0.08]">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-4 border-b border-white/[0.06] gap-3">
+                    <div>
+                        <h2 class="text-base font-semibold text-[#F2EFEA]">Views over time</h2>
+                        <p class="font-mono text-xs text-[#8C8C90] mt-0.5">Daily views · {{ selectedAnalyticsPeriodLabel }}</p>
+                    </div>
+                    <div class="flex items-center p-0.5 rounded-lg bg-[#0E0F11] border border-white/10 text-xs">
+                        <button
+                            v-for="period in (['7D', '30D', '90D', 'All'] as const)"
+                            :key="period"
+                            type="button"
+                            @click="analyticsTimeRange = period"
+                            class="px-2.5 py-1 rounded font-mono text-xs transition-colors cursor-pointer"
+                            :class="analyticsTimeRange === period ? 'bg-[#1E2023] text-[#F2EFEA] border border-white/10 font-semibold' : 'text-[#8C8C90] hover:text-[#F2EFEA]'"
+                        >
+                            {{ period }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SVG Technical Line Chart Canvas -->
+                <div class="relative w-full h-64 select-none">
+                    <svg class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 900 240">
+                        <defs>
+                            <linearGradient id="analyticsAreaTint" x1="0" x2="0" y1="0" y2="1">
+                                <stop offset="0%" stop-color="#7A9BFF" stop-opacity="0.12"></stop>
+                                <stop offset="100%" stop-color="#7A9BFF" stop-opacity="0.00"></stop>
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Hairline Grid Lines & Y-labels -->
+                        <g class="text-[#8C8C90] text-[10px] font-mono opacity-40">
+                            <line stroke="currentColor" stroke-dasharray="2 4" stroke-width="0.5" x1="40" x2="880" y1="20" y2="20"></line>
+                            <text fill="currentColor" text-anchor="end" x="30" y="23">4K</text>
+                            <line stroke="currentColor" stroke-dasharray="2 4" stroke-width="0.5" x1="40" x2="880" y1="75" y2="75"></line>
+                            <text fill="currentColor" text-anchor="end" x="30" y="78">3K</text>
+                            <line stroke="currentColor" stroke-dasharray="2 4" stroke-width="0.5" x1="40" x2="880" y1="130" y2="130"></line>
+                            <text fill="currentColor" text-anchor="end" x="30" y="133">2K</text>
+                            <line stroke="currentColor" stroke-dasharray="2 4" stroke-width="0.5" x1="40" x2="880" y1="185" y2="185"></line>
+                            <text fill="currentColor" text-anchor="end" x="30" y="188">1K</text>
+                            <line stroke="currentColor" stroke-width="0.5" x1="40" x2="880" y1="220" y2="220"></line>
+                            <text fill="currentColor" text-anchor="end" x="30" y="223">0</text>
+                        </g>
+
+                        <!-- Area Fill -->
+                        <path d="M 40 220 L 40 180 Q 140 160 220 140 T 380 120 T 520 80 T 640 45 T 760 90 T 880 65 L 880 220 Z" fill="url(#analyticsAreaTint)"></path>
+
+                        <!-- Clean 2px Monoline -->
+                        <path d="M 40 180 Q 140 160 220 140 T 380 120 T 520 80 T 640 45 T 760 90 T 880 65" fill="none" stroke="#7A9BFF" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+
+                        <!-- Active Hover Hairline Anchor and Node -->
+                        <line
+                            :x1="activeChartPoint.x"
+                            :x2="activeChartPoint.x"
+                            y1="20"
+                            y2="220"
+                            stroke="rgba(242, 239, 234, 0.25)"
+                            stroke-dasharray="3 3"
+                            stroke-width="1"
+                        ></line>
+                        <circle
+                            :cx="activeChartPoint.x"
+                            :cy="activeChartPoint.y"
+                            fill="#1B44E8"
+                            r="5"
+                            stroke="#F2EFEA"
+                            stroke-width="2"
+                        ></circle>
+
+                        <!-- Interactive Point Hit Targets -->
+                        <circle
+                            v-for="(pt, idx) in analyticsPoints"
+                            :key="idx"
+                            :cx="pt.x"
+                            :cy="pt.y"
+                            r="16"
+                            fill="transparent"
+                            class="cursor-pointer"
+                            @mouseenter="activeChartPoint = pt"
+                        ></circle>
+                    </svg>
+
+                    <!-- Positioned Elevated Tooltip Card -->
+                    <div
+                        class="absolute -top-1 transform -translate-x-1/2 p-2 rounded-lg bg-[#17181B] border border-white/15 shadow-xl pointer-events-none transition-all duration-150"
+                        :style="{ left: `${(activeChartPoint.x / 900) * 100}%` }"
+                    >
+                        <p class="font-mono text-[10px] text-[#8C8C90]">{{ activeChartPoint.date }}</p>
+                        <p class="font-mono text-xs font-semibold text-[#F2EFEA]">{{ activeChartPoint.views }}</p>
+                    </div>
+
+                    <!-- X Axis Labels -->
+                    <div class="flex justify-between px-6 pt-2 font-mono text-[11px] text-[#8C8C90]">
+                        <span
+                            v-for="(pt, idx) in analyticsPoints"
+                            :key="idx"
+                            class="cursor-pointer hover:text-[#F2EFEA] transition-colors"
+                            :class="activeChartPoint.label === pt.label ? 'text-[#7A9BFF] font-medium' : ''"
+                            @click="activeChartPoint = pt"
+                        >
+                            {{ pt.label }}
+                        </span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. AUDIENCE RETENTION CURVE (FULL WIDTH) -->
+            <section class="p-5 rounded-xl bg-[#141518] border border-white/[0.08] space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-white/[0.06] gap-2">
+                    <div>
+                        <h2 class="text-base font-semibold text-[#F2EFEA]">Audience retention</h2>
+                        <p class="font-mono text-xs text-[#8C8C90] mt-0.5">Percentage of viewers still watching at each point in the film</p>
+                    </div>
+
+                    <!-- Episode Selector Dropdown -->
+                    <div class="relative self-start sm:self-auto">
+                        <button
+                            type="button"
+                            @click="isRetentionDropdownOpen = !isRetentionDropdownOpen"
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-[#17181B] hover:bg-[#1E2023] text-[#F2EFEA] text-xs font-medium transition-colors cursor-pointer"
+                        >
+                            <span>Episode {{ selectedRetentionEpisode }}</span>
+                            <ChevronDown class="h-3.5 w-3.5 text-[#8C8C90]" />
+                        </button>
+
+                        <div
+                            v-if="isRetentionDropdownOpen"
+                            class="absolute right-0 top-full mt-1.5 w-48 rounded-xl border border-white/15 bg-[#17181B] py-1 shadow-2xl z-30 font-mono text-xs"
+                        >
+                            <button
+                                v-for="ep in retentionEpisodes"
+                                :key="ep.number"
+                                type="button"
+                                @click="selectedRetentionEpisode = ep.number; isRetentionDropdownOpen = false"
+                                class="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-white/[0.04] transition-colors"
+                                :class="selectedRetentionEpisode === ep.number ? 'text-[#7A9BFF] font-semibold' : 'text-[#8C8C90]'"
+                            >
+                                <span>Ep {{ ep.number }}: {{ ep.title }}</span>
+                                <Check v-if="selectedRetentionEpisode === ep.number" class="h-3.5 w-3.5" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Retention Curve Canvas -->
+                <div class="relative w-full h-56 select-none">
+                    <svg class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 900 200">
+                        <!-- Y-Axis References -->
+                        <g class="text-[#8C8C90] text-[10px] font-mono opacity-40">
+                            <line stroke="currentColor" stroke-dasharray="2 4" stroke-width="0.5" x1="45" x2="880" y1="20" y2="20"></line>
+                            <text fill="currentColor" text-anchor="end" x="35" y="24">100%</text>
+                            <line stroke="currentColor" stroke-dasharray="2 4" stroke-width="0.5" x1="45" x2="880" y1="65" y2="65"></line>
+                            <text fill="currentColor" text-anchor="end" x="35" y="69">75%</text>
+                            <line stroke="currentColor" stroke-dasharray="2 4" stroke-width="0.5" x1="45" x2="880" y1="110" y2="110"></line>
+                            <text fill="currentColor" text-anchor="end" x="35" y="114">50%</text>
+                            <line stroke="currentColor" stroke-dasharray="2 4" stroke-width="0.5" x1="45" x2="880" y1="155" y2="155"></line>
+                            <text fill="currentColor" text-anchor="end" x="35" y="159">25%</text>
+                            <line stroke="currentColor" stroke-width="0.5" x1="45" x2="880" y1="190" y2="190"></line>
+                            <text fill="currentColor" text-anchor="end" x="35" y="193">0%</text>
+                        </g>
+
+                        <!-- Retention Area Tint -->
+                        <path d="M 45 20 C 100 22 130 50 200 55 C 350 62 450 70 600 85 C 680 92 720 125 760 130 C 820 135 850 142 880 145 L 880 190 L 45 190 Z" fill="#7A9BFF" fill-opacity="0.06"></path>
+
+                        <!-- Retention Monoline Curve -->
+                        <path d="M 45 20 C 100 22 130 50 200 55 C 350 62 450 70 600 85 C 680 92 720 125 760 130 C 820 135 850 142 880 145" fill="none" stroke="#7A9BFF" stroke-linecap="round" stroke-width="2"></path>
+
+                        <!-- Annotation 1: 3:20 Opening Credits End (x ≈ 115) -->
+                        <line stroke="rgba(242, 239, 234, 0.3)" stroke-dasharray="2 3" stroke-width="1" x1="115" x2="115" y1="20" y2="190"></line>
+
+                        <!-- Annotation 2: Key Scene Drop (x ≈ 720) -->
+                        <line stroke="#1B44E8" stroke-dasharray="2 3" stroke-width="1.2" x1="720" x2="720" y1="20" y2="190"></line>
+                        <circle cx="720" cy="125" fill="#1B44E8" r="4.5" stroke="#F2EFEA" stroke-width="1.5"></circle>
+                    </svg>
+
+                    <!-- Annotation Callout Tags HTML -->
+                    <div class="absolute left-[13%] top-2 px-2 py-1 rounded bg-[#17181B] border border-white/10 text-[10px] font-mono text-[#8C8C90] pointer-events-none">
+                        3:20 · Opening credits end
+                    </div>
+                    <div class="absolute left-[72%] top-12 px-2.5 py-1 rounded bg-[#17181B] border border-[#1B44E8] text-[10px] font-mono text-[#7A9BFF] pointer-events-none shadow-lg">
+                        {{ currentRetentionData.dropPoint }} · Key scene — {{ currentRetentionData.dropRate }} drop
+                    </div>
+
+                    <!-- Timecode X Axis -->
+                    <div class="flex justify-between px-10 pt-2 font-mono text-[11px] text-[#8C8C90]">
+                        <span>0:00</span>
+                        <span>10:00</span>
+                        <span>20:00</span>
+                        <span>30:00</span>
+                        <span>40:00</span>
+                    </div>
+                </div>
+
+                <!-- Insight Callout Strip -->
+                <div class="flex items-center gap-2.5 p-3 rounded-lg bg-[#17181B] border border-white/[0.08] text-xs text-[#8C8C90]">
+                    <Info class="h-4 w-4 text-[#7A9BFF] flex-shrink-0" />
+                    <span>
+                        Biggest drop-off: <strong class="text-[#F2EFEA] font-mono">{{ currentRetentionData.dropPoint }}</strong> —
+                        <span class="text-[#7A9BFF] font-medium font-mono">{{ currentRetentionData.dropRate }}</span> of viewers stopped watching here {{ currentRetentionData.reason }}.
+                    </span>
+                </div>
+            </section>
+
+            <!-- 7 & 8. GRID: DEMOGRAPHICS & TRAFFIC SOURCES -->
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 7A. AUDIENCE AGE -->
+                <div class="p-5 rounded-xl bg-[#141518] border border-white/[0.08] flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-base font-semibold text-[#F2EFEA]">Audience age</h3>
+                        <p class="font-mono text-xs text-[#8C8C90] mt-0.5 mb-4">Viewer distribution by demographic</p>
+                        <div class="space-y-3 font-mono text-xs">
+                            <div v-for="cohort in audienceAgeCohorts" :key="cohort.range">
+                                <div class="flex justify-between mb-1" :class="cohort.isDominant ? 'text-[#7A9BFF] font-medium' : 'text-[#8C8C90]'">
+                                    <span>{{ cohort.range }}</span>
+                                    <span>{{ cohort.percentage }}%</span>
+                                </div>
+                                <div class="h-1.5 w-full bg-[#1E2023] rounded-full overflow-hidden">
+                                    <div
+                                        class="h-full rounded-full transition-all duration-300"
+                                        :class="cohort.isDominant ? 'bg-[#7A9BFF]' : 'bg-white/20'"
+                                        :style="{ width: `${cohort.percentage}%` }"
+                                    ></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7B. TOP LOCATIONS -->
+                <div class="p-5 rounded-xl bg-[#141518] border border-white/[0.08] flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-base font-semibold text-[#F2EFEA]">Top locations</h3>
+                        <p class="font-mono text-xs text-[#8C8C90] mt-0.5 mb-4">Highest density metropolitan centers</p>
+                        <div class="space-y-3.5 font-mono text-xs">
+                            <div v-for="loc in topLocations" :key="loc.city">
+                                <div class="flex items-center justify-between mb-1" :class="loc.isDominant ? 'text-[#F2EFEA] font-medium' : 'text-[#8C8C90]'">
+                                    <div class="flex items-center gap-1.5">
+                                        <Globe class="h-3 w-3 text-[#8C8C90]" />
+                                        <span>{{ loc.city }}</span>
+                                    </div>
+                                    <span>{{ loc.percentage }}</span>
+                                </div>
+                                <div class="h-1 w-full bg-[#1E2023] rounded-full overflow-hidden">
+                                    <div
+                                        class="h-full rounded-full transition-all duration-300"
+                                        :class="loc.isDominant ? 'bg-[#7A9BFF]' : 'bg-white/20'"
+                                        :style="{ width: loc.width }"
+                                    ></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 8. TRAFFIC SOURCES -->
+                <div class="p-5 rounded-xl bg-[#141518] border border-white/[0.08] flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-base font-semibold text-[#F2EFEA]">Traffic sources</h3>
+                        <p class="font-mono text-xs text-[#8C8C90] mt-0.5 mb-4">Where viewers found this film</p>
+                        <div class="space-y-3 font-mono text-xs">
+                            <div v-for="source in trafficSources" :key="source.source">
+                                <div class="flex justify-between mb-1" :class="source.isDominant ? 'text-[#7A9BFF] font-medium' : 'text-[#8C8C90]'">
+                                    <span>{{ source.source }}</span>
+                                    <span>{{ source.percentage }}</span>
+                                </div>
+                                <div class="h-1.5 w-full bg-[#1E2023] rounded-full overflow-hidden">
+                                    <div
+                                        class="h-full rounded-full transition-all duration-300"
+                                        :class="source.isDominant ? 'bg-[#7A9BFF]' : 'bg-white/20'"
+                                        :style="{ width: source.width }"
+                                    ></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 9. EPISODE BREAKDOWN TABLE -->
+            <section class="p-5 rounded-xl bg-[#141518] border border-white/[0.08]">
+                <div class="flex items-center justify-between pb-3 mb-3 border-b border-white/[0.06]">
+                    <div>
+                        <h2 class="text-base font-semibold text-[#F2EFEA]">Episode breakdown</h2>
+                        <p class="font-mono text-xs text-[#8C8C90] mt-0.5">Series drop-off and engagement per installment</p>
+                    </div>
+                    <span class="font-mono text-[11px] text-[#8C8C90] tracking-wider uppercase">6 EPISODES TOTAL</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left font-mono text-xs">
+                        <thead>
+                            <tr class="border-b border-white/10 text-[10px] text-[#8C8C90] uppercase tracking-wider">
+                                <th class="py-2.5 px-3">EPISODE</th>
+                                <th class="py-2.5 px-3 text-right">VIEWS</th>
+                                <th class="py-2.5 px-3 text-right">AVG. COMPLETION</th>
+                                <th class="py-2.5 px-3 text-right">TREND</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/[0.06] text-xs">
+                            <tr
+                                v-for="ep in retentionEpisodes"
+                                :key="ep.number"
+                                class="hover:bg-white/[0.02] transition-colors"
+                            >
+                                <td class="py-3 px-3 text-[#F2EFEA] font-medium flex items-center gap-2">
+                                    <span class="text-[#8C8C90] text-xs">0{{ ep.number }}</span>
+                                    <span>{{ ep.title }}</span>
+                                </td>
+                                <td class="py-3 px-3 text-right text-[#F2EFEA]">{{ ep.views }}</td>
+                                <td class="py-3 px-3 text-right text-[#F2EFEA]">{{ ep.avgCompletion }}</td>
+                                <td class="py-3 px-3 text-right">
+                                    <span
+                                        class="inline-flex items-center gap-1.5"
+                                        :class="ep.number <= 3 ? 'text-[#7A9BFF]' : 'text-[#E85C4A]'"
+                                    >
+                                        <span>{{ ep.number === 1 ? '+12%' : ep.number === 2 ? '+8%' : ep.number === 3 ? '+4%' : ep.number === 4 ? '−2%' : ep.number === 5 ? '−4%' : '−18%' }}</span>
+                                        <span
+                                            class="inline-block h-1 rounded"
+                                            :class="ep.number <= 3 ? 'bg-[#7A9BFF]' : 'bg-[#E85C4A]'"
+                                            :style="{ width: ep.number === 1 ? '32px' : ep.number === 2 ? '24px' : ep.number === 3 ? '16px' : ep.number === 4 ? '12px' : ep.number === 5 ? '16px' : '32px' }"
+                                        ></span>
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 10. ENGAGEMENT ROW (4 STAT CARDS) -->
+            <section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="p-4 rounded-xl bg-[#141518] border border-white/[0.08] flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-[#1E2023] flex items-center justify-center text-[#8C8C90]">
+                        <Heart class="h-4 w-4" />
+                    </div>
+                    <div>
+                        <span class="font-mono text-[10px] text-[#8C8C90] uppercase tracking-wider block">LIKES</span>
+                        <span class="text-lg font-semibold text-[#F2EFEA] font-mono">1,842</span>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-xl bg-[#141518] border border-white/[0.08] flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-[#1E2023] flex items-center justify-center text-[#8C8C90]">
+                        <MessageSquare class="h-4 w-4" />
+                    </div>
+                    <div>
+                        <span class="font-mono text-[10px] text-[#8C8C90] uppercase tracking-wider block">COMMENTS</span>
+                        <span class="text-lg font-semibold text-[#F2EFEA] font-mono">284</span>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-xl bg-[#141518] border border-white/[0.08] flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-[#1E2023] flex items-center justify-center text-[#8C8C90]">
+                        <Share2 class="h-4 w-4" />
+                    </div>
+                    <div>
+                        <span class="font-mono text-[10px] text-[#8C8C90] uppercase tracking-wider block">SHARES</span>
+                        <span class="text-lg font-semibold text-[#F2EFEA] font-mono">512</span>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-xl bg-[#141518] border border-white/[0.08] flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-[#1E2023] flex items-center justify-center text-[#8C8C90]">
+                        <Bookmark class="h-4 w-4" />
+                    </div>
+                    <div>
+                        <span class="font-mono text-[10px] text-[#8C8C90] uppercase tracking-wider block">SAVES</span>
+                        <span class="text-lg font-semibold text-[#F2EFEA] font-mono">3,240</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 11. TOP COMMENTS -->
+            <section class="p-5 rounded-xl bg-[#141518] border border-white/[0.08]">
+                <div class="flex items-center justify-between pb-3 mb-4 border-b border-white/[0.06]">
+                    <div>
+                        <h2 class="text-base font-semibold text-[#F2EFEA]">Top creator community comments</h2>
+                        <p class="font-mono text-xs text-[#8C8C90] mt-0.5">High-engagement audience critiques and feedback</p>
+                    </div>
+                    <button
+                        type="button"
+                        @click="triggerToast('Menampilkan seluruh 284 ulasan penonton')"
+                        class="font-mono text-xs text-[#7A9BFF] hover:underline cursor-pointer"
+                    >
+                        View all 284 →
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    <div
+                        v-for="c in communityComments"
+                        :key="c.id"
+                        class="p-3.5 rounded-lg bg-[#17181B] border border-white/[0.06] flex flex-col sm:flex-row items-start justify-between gap-3"
+                    >
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-semibold text-[#F2EFEA]">{{ c.author }}</span>
+                                <span class="px-1.5 py-0.2 rounded-full border font-mono text-[9px] uppercase tracking-wider" :class="c.badgeColor">
+                                    {{ c.badge }}
+                                </span>
+                                <span class="font-mono text-[11px] text-[#8C8C90]">{{ c.time }}</span>
+                            </div>
+                            <p class="text-xs text-[#c4c5d9] leading-relaxed">
+                                {{ c.text }}
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-1 font-mono text-xs text-[#8C8C90] self-end sm:self-auto flex-shrink-0">
+                            <Heart class="h-3 w-3 text-[#E85C4A]" />
+                            <span>{{ c.likes }}</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </main>
 
         <!-- ============================================================== -->
         <!-- VIEW 4: EARNINGS TAB                                           -->
         <!-- ============================================================== -->
         <main v-else-if="activeTab === 'earnings'" class="mx-auto max-w-7xl space-y-8 px-4 pt-10 pb-16 md:px-8">
-            <div class="flex items-center justify-between border-b border-white/[0.08] pb-6">
+            <div class="flex flex-col justify-between gap-4 border-b border-white/[0.08] pb-6 md:flex-row md:items-end">
                 <div>
-                    <p class="font-mono text-[11px] uppercase tracking-[0.12em] text-[#8C8C90] mb-1 font-semibold">EARNINGS</p>
+                    <p class="font-mono text-[11px] uppercase tracking-[0.12em] text-[#7A9BFF] mb-1 font-semibold">FINANCIALS</p>
                     <h1 class="text-2xl font-semibold tracking-tight text-[#F2EFEA] sm:text-3xl">Royalty Ledger &amp; Payouts</h1>
-                    <p class="text-sm text-[#8C8C90] mt-0.5">Penetapan bagi hasil streaming, royalti episode berbayar, dan riwayat transfer.</p>
+                    <p class="text-sm text-[#8C8C90] mt-0.5">Penetapan bagi hasil streaming, royalti penonton VIP, dan riwayat penarikan dana.</p>
                 </div>
                 <button
                     type="button"
                     @click="isPayoutModalOpen = true"
-                    class="px-4 py-2 bg-[#1B44E8] rounded-lg text-white font-medium text-xs hover:bg-[#1B44E8]/90 transition-all"
+                    class="self-start md:self-auto flex items-center gap-1.5 px-4 py-2 bg-[#1B44E8] rounded-xl text-white font-medium text-xs hover:bg-[#1B44E8]/90 transition-all cursor-pointer shadow-sm"
                 >
-                    Request Payout
+                    <Wallet class="h-4 w-4" />
+                    <span>Tarik Royalti</span>
                 </button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="p-6 rounded-xl bg-[#141518] border border-white/[0.06]">
-                    <span class="font-mono text-xs text-[#8C8C90] uppercase">Saldo Belum Dicairkan</span>
+            <!-- Earnings Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="p-6 rounded-xl bg-[#141518] border border-white/[0.08]">
+                    <span class="font-mono text-xs text-[#8C8C90] uppercase">Saldo Siap Dicairkan</span>
                     <div class="font-mono text-3xl font-semibold text-[#F2EFEA] mt-2">
                         <span class="text-lg font-normal text-[#8C8C90]">Rp</span> 4.240.000
                     </div>
-                    <p class="text-xs text-emerald-400 mt-2">Tersedia untuk ditarik ke rekening terdaftar kapan saja.</p>
+                    <p class="text-xs text-emerald-400 mt-2">Telah diverifikasi · Tersedia untuk ditarik ke rekening terdaftar kapan saja.</p>
                 </div>
-                <div class="p-6 rounded-xl bg-[#141518] border border-white/[0.06]">
+
+                <div class="p-6 rounded-xl bg-[#141518] border border-white/[0.08]">
+                    <span class="font-mono text-xs text-[#8C8C90] uppercase">Estimasi Royalti Bulan Ini</span>
+                    <div class="font-mono text-3xl font-semibold text-[#7A9BFF] mt-2">
+                        <span class="text-lg font-normal text-[#8C8C90]">Rp</span> 1.240.000
+                    </div>
+                    <p class="text-xs text-[#8C8C90] mt-2">+22.7% lebih tinggi dari performa penayangan bulan lalu.</p>
+                </div>
+
+                <div class="p-6 rounded-xl bg-[#141518] border border-white/[0.08]">
                     <span class="font-mono text-xs text-[#8C8C90] uppercase">Total Penghasilan Sepanjang Masa</span>
                     <div class="font-mono text-3xl font-semibold text-[#F2EFEA] mt-2">
                         <span class="text-lg font-normal text-[#8C8C90]">Rp</span> 38.650.000
                     </div>
                     <p class="text-xs text-[#8C8C90] mt-2">Dari 12 karya film kurasi dan 248.320 penonton terverifikasi.</p>
+                </div>
+            </div>
+
+            <!-- Revenue Breakdown & Payout Log -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="p-6 rounded-xl bg-[#141518] border border-white/[0.08] space-y-4">
+                    <h3 class="text-base font-semibold text-[#F2EFEA]">Sumber Pendapatan Film</h3>
+                    <div class="space-y-3 font-mono text-xs">
+                        <div>
+                            <div class="flex justify-between text-[#F2EFEA] mb-1">
+                                <span>Bagian Langganan VIP &amp; PRO WATOON</span>
+                                <span class="text-[#7A9BFF]">Rp 28.450.000 (73.6%)</span>
+                            </div>
+                            <div class="h-1.5 w-full bg-[#1E2023] rounded-full overflow-hidden">
+                                <div class="h-full bg-[#7A9BFF]" style="width: 73.6%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[#8C8C90] mb-1">
+                                <span>Pay-Per-View Cinema Rental (4K HDR)</span>
+                                <span>Rp 7.820.000 (20.2%)</span>
+                            </div>
+                            <div class="h-1.5 w-full bg-[#1E2023] rounded-full overflow-hidden">
+                                <div class="h-full bg-white/20" style="width: 20.2%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[#8C8C90] mb-1">
+                                <span>Apresiasi Penonton &amp; Donasi Komunitas</span>
+                                <span>Rp 2.380.000 (6.2%)</span>
+                            </div>
+                            <div class="h-1.5 w-full bg-[#1E2023] rounded-full overflow-hidden">
+                                <div class="h-full bg-white/20" style="width: 6.2%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6 rounded-xl bg-[#141518] border border-white/[0.08] space-y-4">
+                    <h3 class="text-base font-semibold text-[#F2EFEA]">Riwayat Pencairan Terakhir</h3>
+                    <div class="space-y-3 font-mono text-xs">
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-[#17181B] border border-white/[0.06]">
+                            <div>
+                                <p class="text-[#F2EFEA] font-medium">Penarikan BCA · 8820 9182 10</p>
+                                <p class="text-[#8C8C90] text-[11px]">10 Okt 2025 · ID: PAY-99214</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[#F2EFEA] font-semibold">Rp 3.500.000</span>
+                                <span class="block text-emerald-400 text-[10px]">Berhasil Diterima</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-[#17181B] border border-white/[0.06]">
+                            <div>
+                                <p class="text-[#F2EFEA] font-medium">Penarikan BCA · 8820 9182 10</p>
+                                <p class="text-[#8C8C90] text-[11px]">15 Sep 2025 · ID: PAY-88102</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[#F2EFEA] font-semibold">Rp 4.100.000</span>
+                                <span class="block text-emerald-400 text-[10px]">Berhasil Diterima</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
