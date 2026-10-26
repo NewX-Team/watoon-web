@@ -44,6 +44,9 @@ import {
     Info,
     Globe,
     Layers,
+    Landmark,
+    Download,
+    AlertCircle,
 } from '@lucide/vue';
 import { dashboard, logout } from '@/routes';
 import type { Auth } from '@/types/auth';
@@ -789,6 +792,242 @@ const communityComments = [
         likes: 56,
     },
 ];
+
+// =========================================================================
+// EARNINGS STATE & DATA
+// =========================================================================
+
+// Balances
+const availableBalance = ref(3240000);
+const pendingBalance = ref(840000);
+const thisMonthEarnings = ref(4240000);
+const lifetimeEarned = ref(18240000);
+
+// Earnings Time Range Filter
+const earningsTimeRange = ref<'7D' | '30D' | '90D' | 'All'>('30D');
+const isEarningsDateDropdownOpen = ref(false);
+const selectedEarningsPeriodLabel = computed(() => {
+    switch (earningsTimeRange.value) {
+        case '7D':
+            return 'Last 7 days';
+        case '30D':
+            return 'Last 30 days';
+        case '90D':
+            return 'Last 90 days';
+        case 'All':
+            return 'All time';
+    }
+});
+
+// Interactive Revenue Over Time Chart
+const earningsChartPoints = [
+    { x: 0, y: 180, date: '01 Oct 2025', earned: 'Rp 65.000', label: '01 Oct' },
+    { x: 50, y: 165, date: '04 Oct 2025', earned: 'Rp 82.000', label: '' },
+    { x: 110, y: 170, date: '07 Oct 2025', earned: 'Rp 78.000', label: '07 Oct' },
+    { x: 170, y: 140, date: '11 Oct 2025', earned: 'Rp 110.000', label: '' },
+    { x: 230, y: 130, date: '14 Oct 2025', earned: 'Rp 125.000', label: '14 Oct' },
+    { x: 290, y: 150, date: '16 Oct 2025', earned: 'Rp 95.000', label: '' },
+    { x: 350, y: 90, date: '18 Oct 2025', earned: 'Rp 142.000', label: '' },
+    { x: 410, y: 110, date: '21 Oct 2025', earned: 'Rp 130.000', label: '21 Oct' },
+    { x: 470, y: 60, date: '23 Oct 2025', earned: 'Rp 168.000 (Peak)', label: '' },
+    { x: 530, y: 75, date: '25 Oct 2025', earned: 'Rp 150.000', label: '' },
+    { x: 590, y: 40, date: '28 Oct 2025', earned: 'Rp 185.000', label: '28 Oct' },
+    { x: 650, y: 55, date: '30 Oct 2025', earned: 'Rp 172.000', label: '' },
+    { x: 700, y: 30, date: 'Today', earned: 'Rp 195.000', label: 'Today' },
+];
+const activeEarningsPoint = ref(earningsChartPoints[6]); // 18 Oct coordinate as in Stitch
+
+// Revenue By Film
+const earningsByFilm = [
+    {
+        id: 1,
+        title: 'Cakrawala Senja',
+        type: 'Feature Film',
+        duration: '1h 48m',
+        amount: 'Rp 680K',
+        rawAmount: 680000,
+        share: '55.4%',
+        isDominant: true,
+        thumb: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCDHVKmWMpl3n4DCn4vSJahBjHDxaApBeFLBta_JGHSN6qMEV6T-Ahrgtx4Q4pYjEJBF1iZjnvfzCuljQTzhaBqaMRiCwOlJRhhVrYdB50CLMJv_e2hJd5RGdXAQLxGK4k0rfUOx2c6G_MM0HezAJpR91V-xjmkltrvfP0DzgmUiAkPwNT6lo0gWm4iKXmgAh-3eenc02WZ4KoFxvmCUUvLPwj4tjhSPIIJihtmwJGW8Ld2_0JRDvuG',
+    },
+    {
+        id: 3,
+        title: 'Rumah di Ujung Jalan',
+        type: 'Short Narrative',
+        duration: '24m',
+        amount: 'Rp 320K',
+        rawAmount: 320000,
+        share: '26.1%',
+        isDominant: false,
+        thumb: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAOYeeaJzVHrP8_YZceibiCvpDmtmGC9-bUNnp_8NFKudwTBfN0SUse0fzE_LOYnxLs5WpJbW38XhpEAk8MNIArsGcICYKvLsMnU7j8nP2-mw2NBuzb1gLypvxr2CmPVPKoLXnJsu3K58tvu_iR238mfIQVJsK1g6YiFDWc4VQF8tJE7qMdT33tOza-ArbNGu0JfolXoAwfkYoKFqNE1O6I2lsXcIl-ztxUYhn6NIbi8w2Txn5V9neg',
+    },
+    {
+        id: 2,
+        title: 'Detik Terakhir',
+        type: 'Drama',
+        duration: '42m',
+        amount: 'Rp 180K',
+        rawAmount: 180000,
+        share: '14.7%',
+        isDominant: false,
+        thumb: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBNj2-X1DwdBDfDcjNH2aAsSa9Zz5Flym8WxHcka-fJUTcvSDW51sKwcVwvbKgPHtuMM--aMTHlhbmYdOlno2SCweO_HmLbKZDn9Snk0KaawSYhZE2zlmXORy-OHzeiKEbmcVvJyp2WX9YEgbTTo-Bz1pN0Bm71P_DH73xEMJ7n_iHSOQn_LAraEDNR9KXVMzodSEINV0rKl0Td19DIcFScwub4ccOHUa4FWRlHhxuzaaolrTLsKmx4',
+    },
+    {
+        id: 7,
+        title: 'Senja di Kota Tua',
+        type: 'Documentary',
+        duration: '52m',
+        amount: 'Rp 60K',
+        rawAmount: 60000,
+        share: '3.8%',
+        isDominant: false,
+        thumb: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDdHkt1xaQi9Hpt6F1tmoQZ2B0jCau4XrjYMcDsvnR6XYXzorpjBDzCS3ods0qGNGfONNAfVi0Bq3VvRYXD43EEIMI7Dz_8fgO6pSvq7lYAPBkTvdz_3aa4-94wEUQK1SFQ-nfj3syFNRioJEmkD4FC5Bz9nPT5DXWsdWd6MakiYNIgkxmsRE8zmr_9qrvIgC-Bu0L3AqTRuymBvYaJnyTGvFqg2tGcgltnIZeFLmBD_Km3ylzMkX6F',
+    },
+];
+
+// Revenue By Source
+const revenueSources = [
+    { source: 'Premium share', percentage: '62.4%', width: '62.4%', isDominant: true },
+    { source: 'Pay-per-view', percentage: '24.8%', width: '24.8%', isDominant: false },
+    { source: 'Tips from viewers', percentage: '9.2%', width: '9.2%', isDominant: false },
+    { source: 'Other', percentage: '3.6%', width: '3.6%', isDominant: false },
+];
+
+// Payout History Table State
+type PayoutItem = {
+    id: string;
+    date: string;
+    amount: string;
+    rawAmount: number;
+    destination: string;
+    status: 'completed' | 'processing' | 'failed';
+    statusLabel: string;
+    reference: string;
+    errorNote?: string;
+};
+
+const payoutHistory = ref<PayoutItem[]>([
+    {
+        id: '1',
+        date: '12 Oct 2026',
+        amount: 'Rp 2.500.000',
+        rawAmount: 2500000,
+        destination: 'BCA · **** 4821',
+        status: 'completed',
+        statusLabel: 'Completed',
+        reference: 'MT-9812',
+    },
+    {
+        id: '2',
+        date: '28 Sep 2026',
+        amount: 'Rp 1.800.000',
+        rawAmount: 1800000,
+        destination: 'BCA · **** 4821',
+        status: 'completed',
+        statusLabel: 'Completed',
+        reference: 'MT-9640',
+    },
+    {
+        id: '3',
+        date: '14 Sep 2026',
+        amount: 'Rp 3.200.000',
+        rawAmount: 3200000,
+        destination: 'GoPay · 0812 **** 7890',
+        status: 'completed',
+        statusLabel: 'Completed',
+        reference: 'MT-9512',
+    },
+    {
+        id: '4',
+        date: '01 Sep 2026',
+        amount: 'Rp 900.000',
+        rawAmount: 900000,
+        destination: 'BCA · **** 4821',
+        status: 'failed',
+        statusLabel: 'Failed',
+        reference: 'MT-9384',
+        errorNote: 'Account name mismatch',
+    },
+]);
+
+const copyReferenceId = (refId: string) => {
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(refId);
+    }
+    triggerToast(`Kode referensi ${refId} disalin ke papan klip.`);
+};
+
+// Withdrawal Slide-Over Drawer / Modal Flow
+const isWithdrawDrawerOpen = ref(false);
+const withdrawAmount = ref<number>(3240000);
+const withdrawAmountInput = computed({
+    get: () => withdrawAmount.value.toLocaleString('id-ID'),
+    set: (val: string) => {
+        const clean = parseInt(val.replace(/\D/g, ''), 10);
+        withdrawAmount.value = isNaN(clean) ? 0 : clean;
+    },
+});
+
+const setQuickAmount = (val: number) => {
+    withdrawAmount.value = Math.min(val, availableBalance.value);
+};
+
+const taxWithholding = computed(() => Math.round(withdrawAmount.value * 0.02));
+const netPayoutReceived = computed(() => Math.max(0, withdrawAmount.value - taxWithholding.value));
+
+const confirmWithdrawal = () => {
+    if (withdrawAmount.value < 100000) {
+        triggerToast('Minimal penarikan adalah Rp 100.000');
+        return;
+    }
+    if (withdrawAmount.value > availableBalance.value) {
+        triggerToast('Jumlah penarikan melebihi saldo tersedia.');
+        return;
+    }
+
+    const withdrawn = withdrawAmount.value;
+    availableBalance.value -= withdrawn;
+
+    // Add to payout history
+    const newRef = `MT-${Math.floor(1000 + Math.random() * 9000)}`;
+    payoutHistory.value.unshift({
+        id: Date.now().toString(),
+        date: 'Today',
+        amount: `Rp ${withdrawn.toLocaleString('id-ID')}`,
+        rawAmount: withdrawn,
+        destination: 'BCA · **** 4821',
+        status: 'completed',
+        statusLabel: 'Completed',
+        reference: newRef,
+    });
+
+    isWithdrawDrawerOpen.value = false;
+    triggerToast(`Penarikan dana Rp ${withdrawn.toLocaleString('id-ID')} berhasil diproses.`);
+};
+
+const exportPayoutCSV = () => {
+    const csvContent =
+        'data:text/csv;charset=utf-8,' +
+        'Date,Amount,Destination,Status,Reference\n' +
+        payoutHistory.value
+            .map((p) => `"${p.date}","${p.amount}","${p.destination}","${p.statusLabel}","${p.reference}"`)
+            .join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `watoon-payout-history-${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    triggerToast('Riwayat payout berhasil diekspor ke CSV.');
+};
+
+const scrollToPayoutHistory = () => {
+    const el = document.getElementById('payout-history');
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+    }
+};
 
 onMounted(() => {
     const params = new URLSearchParams(window.location.search);
@@ -2611,114 +2850,631 @@ const handleLogout = () => {
         </main>
 
         <!-- ============================================================== -->
-        <!-- VIEW 4: EARNINGS TAB                                           -->
+        <!-- VIEW 4: EARNINGS TAB (ROYALTY LEDGER & PAYOUTS)                -->
         <!-- ============================================================== -->
         <main v-else-if="activeTab === 'earnings'" class="mx-auto max-w-7xl space-y-8 px-4 pt-10 pb-16 md:px-8">
-            <div class="flex flex-col justify-between gap-4 border-b border-white/[0.08] pb-6 md:flex-row md:items-end">
+            <!-- [2] PAGE HEADER -->
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-white/[0.08] pb-6">
                 <div>
-                    <p class="font-mono text-[11px] uppercase tracking-[0.12em] text-[#7A9BFF] mb-1 font-semibold">FINANCIALS</p>
-                    <h1 class="text-2xl font-semibold tracking-tight text-[#F2EFEA] sm:text-3xl">Royalty Ledger &amp; Payouts</h1>
-                    <p class="text-sm text-[#8C8C90] mt-0.5">Penetapan bagi hasil streaming, royalti penonton VIP, dan riwayat penarikan dana.</p>
+                    <p class="font-mono text-[11px] uppercase text-[#7A9BFF] tracking-[0.14em] mb-1 font-semibold">
+                        EARNINGS
+                    </p>
+                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-[#F2EFEA]">
+                        Your earnings
+                    </h1>
+                    <p class="text-sm text-[#8C8C90] mt-0.5">
+                        Track revenue, withdraw funds, and manage your payout method.
+                    </p>
                 </div>
-                <button
-                    type="button"
-                    @click="isPayoutModalOpen = true"
-                    class="self-start md:self-auto flex items-center gap-1.5 px-4 py-2 bg-[#1B44E8] rounded-xl text-white font-medium text-xs hover:bg-[#1B44E8]/90 transition-all cursor-pointer shadow-sm"
-                >
-                    <Wallet class="h-4 w-4" />
-                    <span>Tarik Royalti</span>
-                </button>
+
+                <!-- Date Range Selector -->
+                <div class="relative flex items-center self-start sm:self-auto">
+                    <button
+                        type="button"
+                        @click="isEarningsDateDropdownOpen = !isEarningsDateDropdownOpen"
+                        class="flex items-center gap-2 rounded-lg border border-white/10 bg-[#141518] px-3.5 py-1.5 text-xs text-[#F2EFEA] hover:bg-[#1E2023] transition-colors cursor-pointer"
+                    >
+                        <Calendar class="h-3.5 w-3.5 text-[#8C8C90]" />
+                        <span>{{ selectedEarningsPeriodLabel }}</span>
+                        <ChevronDown class="h-3.5 w-3.5 text-[#8C8C90]" />
+                    </button>
+
+                    <!-- Dropdown -->
+                    <div
+                        v-if="isEarningsDateDropdownOpen"
+                        class="absolute right-0 top-full mt-1.5 w-40 rounded-xl border border-white/10 bg-[#17181B] py-1 shadow-2xl z-30 font-mono text-xs"
+                    >
+                        <button
+                            v-for="r in (['7D', '30D', '90D', 'All'] as const)"
+                            :key="r"
+                            type="button"
+                            @click="earningsTimeRange = r; isEarningsDateDropdownOpen = false"
+                            class="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-white/[0.04] transition-colors"
+                            :class="earningsTimeRange === r ? 'text-[#7A9BFF] font-semibold' : 'text-[#8C8C90]'"
+                        >
+                            <span>{{ r === '7D' ? 'Last 7 days' : r === '30D' ? 'Last 30 days' : r === '90D' ? 'Last 90 days' : 'All time' }}</span>
+                            <Check v-if="earningsTimeRange === r" class="h-3.5 w-3.5" />
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <!-- Earnings Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="p-6 rounded-xl bg-[#141518] border border-white/[0.08]">
-                    <span class="font-mono text-xs text-[#8C8C90] uppercase">Saldo Siap Dicairkan</span>
-                    <div class="font-mono text-3xl font-semibold text-[#F2EFEA] mt-2">
-                        <span class="text-lg font-normal text-[#8C8C90]">Rp</span> 4.240.000
+            <!-- [3] BALANCE HERO — 2-COLUMN SPLIT CONTAINER -->
+            <section class="bg-[#141518] rounded-xl border border-white/[0.08] p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
+                <!-- Left Column (7 cols) -->
+                <div class="lg:col-span-7 flex flex-col justify-between space-y-6 lg:pr-6">
+                    <div>
+                        <span class="font-mono text-[11px] uppercase tracking-[0.16em] text-[#8C8C90] block mb-2 font-medium">
+                            AVAILABLE BALANCE
+                        </span>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-xl sm:text-2xl font-mono text-[#8C8C90]">Rp</span>
+                            <span class="text-4xl sm:text-5xl font-semibold font-mono tracking-tight text-[#F2EFEA]">
+                                {{ availableBalance.toLocaleString('id-ID') }}
+                            </span>
+                        </div>
+                        <p class="text-sm font-medium text-emerald-400 mt-2 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            Ready to withdraw
+                        </p>
                     </div>
-                    <p class="text-xs text-emerald-400 mt-2">Telah diverifikasi · Tersedia untuk ditarik ke rekening terdaftar kapan saja.</p>
+
+                    <div class="space-y-3">
+                        <div class="flex flex-wrap items-center gap-4">
+                            <button
+                                type="button"
+                                @click="isWithdrawDrawerOpen = true"
+                                class="bg-[#1B44E8] text-white px-5 py-2.5 rounded-xl font-medium text-xs flex items-center gap-2 hover:bg-[#1B44E8]/90 active:scale-[0.99] transition-all cursor-pointer shadow-md"
+                            >
+                                <span>Withdraw earnings</span>
+                                <ArrowUpRight class="h-4 w-4" />
+                            </button>
+                            <button
+                                type="button"
+                                @click="scrollToPayoutHistory"
+                                class="text-[#7A9BFF] font-mono text-xs hover:underline flex items-center gap-1 transition-colors cursor-pointer"
+                            >
+                                <span>View payout history</span>
+                            </button>
+                        </div>
+                        <p class="font-mono text-xs text-[#8C8C90]">
+                            Minimum withdrawal: Rp 100.000 · Arrives in 1-3 business days
+                        </p>
+                    </div>
                 </div>
 
-                <div class="p-6 rounded-xl bg-[#141518] border border-white/[0.08]">
-                    <span class="font-mono text-xs text-[#8C8C90] uppercase">Estimasi Royalti Bulan Ini</span>
-                    <div class="font-mono text-3xl font-semibold text-[#7A9BFF] mt-2">
-                        <span class="text-lg font-normal text-[#8C8C90]">Rp</span> 1.240.000
+                <!-- Vertical divider on desktop -->
+                <div class="hidden lg:block w-[1px] bg-white/[0.08] -my-8 self-stretch"></div>
+
+                <!-- Right Column (5 cols) -->
+                <div class="lg:col-span-4 flex flex-col justify-between gap-4 py-1">
+                    <!-- Stat 1: Pending -->
+                    <div class="pb-4 border-b border-white/[0.06]">
+                        <span class="font-mono text-[11px] text-[#8C8C90] uppercase tracking-wider block">PENDING</span>
+                        <div class="flex items-baseline justify-between mt-1">
+                            <span class="font-mono text-lg font-semibold text-[#F2EFEA]">
+                                Rp {{ pendingBalance.toLocaleString('id-ID') }}
+                            </span>
+                            <span class="font-mono text-xs text-[#8C8C90]">Clears in 3 days</span>
+                        </div>
                     </div>
-                    <p class="text-xs text-[#8C8C90] mt-2">+22.7% lebih tinggi dari performa penayangan bulan lalu.</p>
+
+                    <!-- Stat 2: This Month -->
+                    <div class="py-2 border-b border-white/[0.06]">
+                        <span class="font-mono text-[11px] text-[#8C8C90] uppercase tracking-wider block">THIS MONTH</span>
+                        <div class="flex items-baseline justify-between mt-1">
+                            <span class="font-mono text-lg font-semibold text-[#F2EFEA]">
+                                Rp {{ thisMonthEarnings.toLocaleString('id-ID') }}
+                            </span>
+                            <span class="font-mono text-xs text-[#7A9BFF] flex items-center gap-0.5">
+                                <TrendingUp class="h-3.5 w-3.5" /> 22.7%
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Stat 3: Lifetime Earned -->
+                    <div class="pt-2">
+                        <span class="font-mono text-[11px] text-[#8C8C90] uppercase tracking-wider block">LIFETIME EARNED</span>
+                        <div class="flex items-baseline justify-between mt-1">
+                            <span class="font-mono text-lg font-semibold text-[#F2EFEA]">
+                                Rp {{ lifetimeEarned.toLocaleString('id-ID') }}
+                            </span>
+                            <span class="font-mono text-xs text-[#8C8C90]">Since Jan 2024</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- [4] REVENUE OVER TIME CHART -->
+            <section class="bg-[#141518] rounded-xl border border-white/[0.08] p-6 space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.06] pb-4">
+                    <div>
+                        <h2 class="text-base font-semibold text-[#F2EFEA]">Revenue over time</h2>
+                        <p class="font-mono text-xs text-[#8C8C90] mt-0.5">Daily earnings · {{ selectedEarningsPeriodLabel }}</p>
+                    </div>
+
+                    <!-- Time Range Selector -->
+                    <div class="flex items-center bg-[#0E0F11] rounded-lg p-0.5 border border-white/10 self-start">
+                        <button
+                            v-for="p in (['7D', '30D', '90D', 'All'] as const)"
+                            :key="p"
+                            type="button"
+                            @click="earningsTimeRange = p"
+                            class="px-3 py-1 font-mono text-xs rounded transition-colors cursor-pointer"
+                            :class="earningsTimeRange === p ? 'bg-[#1E2023] text-[#F2EFEA] font-semibold border border-white/10 shadow-sm' : 'text-[#8C8C90] hover:text-[#F2EFEA]'"
+                        >
+                            {{ p }}
+                        </button>
+                    </div>
                 </div>
 
-                <div class="p-6 rounded-xl bg-[#141518] border border-white/[0.08]">
-                    <span class="font-mono text-xs text-[#8C8C90] uppercase">Total Penghasilan Sepanjang Masa</span>
-                    <div class="font-mono text-3xl font-semibold text-[#F2EFEA] mt-2">
-                        <span class="text-lg font-normal text-[#8C8C90]">Rp</span> 38.650.000
+                <!-- Vector Chart Canvas with Tooltip Indicator -->
+                <div class="relative h-[260px] w-full pt-2 select-none">
+                    <!-- Y-Axis labels (tabular) -->
+                    <div class="absolute left-0 top-0 bottom-8 flex flex-col justify-between font-mono text-[11px] text-[#8C8C90] pointer-events-none select-none">
+                        <span>Rp 400K</span>
+                        <span>Rp 300K</span>
+                        <span>Rp 200K</span>
+                        <span>Rp 100K</span>
+                        <span>0</span>
                     </div>
-                    <p class="text-xs text-[#8C8C90] mt-2">Dari 12 karya film kurasi dan 248.320 penonton terverifikasi.</p>
+
+                    <!-- Grid Lines & Chart Area -->
+                    <div class="ml-16 h-[210px] relative">
+                        <!-- Subtle Grid Lines -->
+                        <div class="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                            <div class="w-full border-b border-white/[0.05]"></div>
+                            <div class="w-full border-b border-white/[0.05]"></div>
+                            <div class="w-full border-b border-white/[0.05]"></div>
+                            <div class="w-full border-b border-white/[0.05]"></div>
+                            <div class="w-full border-b border-white/[0.05]"></div>
+                        </div>
+
+                        <!-- SVG Chart Curve & Area Tint -->
+                        <svg class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 700 210">
+                            <defs>
+                                <linearGradient id="earningsAreaGrad" x1="0" x2="0" y1="0" y2="1">
+                                    <stop offset="0%" stop-color="#7A9BFF" stop-opacity="0.12"></stop>
+                                    <stop offset="100%" stop-color="#7A9BFF" stop-opacity="0.01"></stop>
+                                </linearGradient>
+                            </defs>
+
+                            <!-- Area under curve -->
+                            <polygon
+                                fill="url(#earningsAreaGrad)"
+                                points="
+                                    0,180
+                                    50,165
+                                    110,170
+                                    170,140
+                                    230,130
+                                    290,150
+                                    350,90
+                                    410,110
+                                    470,60
+                                    530,75
+                                    590,40
+                                    650,55
+                                    700,30
+                                    700,210
+                                    0,210
+                                "
+                            ></polygon>
+
+                            <!-- 2px Cobalt Curve line -->
+                            <polyline
+                                fill="none"
+                                points="
+                                    0,180
+                                    50,165
+                                    110,170
+                                    170,140
+                                    230,130
+                                    290,150
+                                    350,90
+                                    410,110
+                                    470,60
+                                    530,75
+                                    590,40
+                                    650,55
+                                    700,30
+                                "
+                                stroke="#7A9BFF"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                            ></polyline>
+
+                            <!-- Active Point Anchor Node -->
+                            <circle
+                                :cx="activeEarningsPoint.x"
+                                :cy="activeEarningsPoint.y"
+                                fill="#0E0F11"
+                                r="5"
+                                stroke="#7A9BFF"
+                                stroke-width="2"
+                            ></circle>
+
+                            <!-- Interactive Hit Target Nodes -->
+                            <circle
+                                v-for="(pt, idx) in earningsChartPoints"
+                                :key="idx"
+                                :cx="pt.x"
+                                :cy="pt.y"
+                                r="16"
+                                fill="transparent"
+                                class="cursor-pointer"
+                                @mouseenter="activeEarningsPoint = pt"
+                            ></circle>
+                        </svg>
+
+                        <!-- Active Hover Hairline + Tooltip -->
+                        <div
+                            class="absolute top-0 bottom-0 pointer-events-none flex flex-col items-center transition-all duration-150"
+                            :style="{ left: `${(activeEarningsPoint.x / 700) * 100}%` }"
+                        >
+                            <div class="w-[1px] h-full bg-[#7A9BFF]/40 border-dashed"></div>
+                            <!-- Tooltip Card -->
+                            <div class="absolute -top-3 -translate-y-full bg-[#17181B] border border-white/15 px-3 py-1.5 rounded-lg whitespace-nowrap shadow-xl">
+                                <p class="font-mono text-xs text-[#F2EFEA]">
+                                    {{ activeEarningsPoint.date }} · <span class="text-[#7A9BFF] font-medium">{{ activeEarningsPoint.earned }}</span> earned
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- X-Axis Labels -->
+                    <div class="ml-16 mt-3 flex justify-between font-mono text-[11px] text-[#8C8C90]">
+                        <span>01 Oct</span>
+                        <span>07 Oct</span>
+                        <span>14 Oct</span>
+                        <span>21 Oct</span>
+                        <span>28 Oct</span>
+                        <span>Today</span>
+                    </div>
                 </div>
+            </section>
+
+            <!-- [5] TWO-COLUMN REVENUE BREAKDOWN -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                <!-- Left (7 cols): Revenue by film -->
+                <section class="lg:col-span-7 bg-[#141518] rounded-xl border border-white/[0.08] p-6 space-y-4">
+                    <div class="flex items-center justify-between border-b border-white/[0.06] pb-3">
+                        <div>
+                            <h2 class="text-base font-semibold text-[#F2EFEA]">Revenue by film</h2>
+                            <p class="font-mono text-xs text-[#8C8C90] mt-0.5">Lifetime earnings per title</p>
+                        </div>
+                        <span class="font-mono text-[11px] text-[#8C8C90] uppercase tracking-wider">SHARE</span>
+                    </div>
+
+                    <div class="divide-y divide-white/[0.06]">
+                        <div
+                            v-for="film in earningsByFilm"
+                            :key="film.id"
+                            class="py-3 flex items-center justify-between gap-4 hover:bg-white/[0.02] transition-colors rounded-lg px-2"
+                        >
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-16 h-9 rounded-lg bg-[#0E0F11] overflow-hidden shrink-0 border border-white/10">
+                                    <img :src="film.thumb" :alt="film.title" class="w-full h-full object-cover" />
+                                </div>
+                                <div class="truncate">
+                                    <h3 class="text-sm font-medium text-[#F2EFEA] truncate">{{ film.title }}</h3>
+                                    <span class="font-mono text-[11px] text-[#8C8C90]">{{ film.type }} · {{ film.duration }}</span>
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <p class="font-mono text-sm font-semibold text-[#F2EFEA]">{{ film.amount }}</p>
+                                <p class="font-mono text-xs" :class="film.isDominant ? 'text-[#7A9BFF] font-medium' : 'text-[#8C8C90]'">
+                                    {{ film.share }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Right (5 cols): Revenue by source -->
+                <section class="lg:col-span-5 bg-[#141518] rounded-xl border border-white/[0.08] p-6 space-y-5">
+                    <div class="border-b border-white/[0.06] pb-3">
+                        <h2 class="text-base font-semibold text-[#F2EFEA]">Revenue by source</h2>
+                        <p class="font-mono text-xs text-[#8C8C90] mt-0.5">Where earnings come from</p>
+                    </div>
+
+                    <div class="space-y-4 pt-1">
+                        <div v-for="src in revenueSources" :key="src.source" class="space-y-1.5">
+                            <div class="flex justify-between items-center text-xs">
+                                <span :class="src.isDominant ? 'font-medium text-[#F2EFEA]' : 'text-[#8C8C90]'">{{ src.source }}</span>
+                                <span class="font-mono text-xs" :class="src.isDominant ? 'text-[#7A9BFF] font-semibold' : 'text-[#8C8C90]'">{{ src.percentage }}</span>
+                            </div>
+                            <div class="w-full h-2 bg-[#1E2023] rounded-full overflow-hidden">
+                                <div
+                                    class="h-full rounded-full transition-all duration-300"
+                                    :class="src.isDominant ? 'bg-[#7A9BFF]' : 'bg-white/20'"
+                                    :style="{ width: src.width }"
+                                ></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-white/[0.06]">
+                        <p class="font-mono text-[11px] text-[#8C8C90] leading-relaxed">
+                            Revenue calculations follow creator terms rev v4.2. Rates are calculated after standard network delivery costs.
+                        </p>
+                    </div>
+                </section>
             </div>
 
-            <!-- Revenue Breakdown & Payout Log -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="p-6 rounded-xl bg-[#141518] border border-white/[0.08] space-y-4">
-                    <h3 class="text-base font-semibold text-[#F2EFEA]">Sumber Pendapatan Film</h3>
-                    <div class="space-y-3 font-mono text-xs">
-                        <div>
-                            <div class="flex justify-between text-[#F2EFEA] mb-1">
-                                <span>Bagian Langganan VIP &amp; PRO WATOON</span>
-                                <span class="text-[#7A9BFF]">Rp 28.450.000 (73.6%)</span>
-                            </div>
-                            <div class="h-1.5 w-full bg-[#1E2023] rounded-full overflow-hidden">
-                                <div class="h-full bg-[#7A9BFF]" style="width: 73.6%"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-[#8C8C90] mb-1">
-                                <span>Pay-Per-View Cinema Rental (4K HDR)</span>
-                                <span>Rp 7.820.000 (20.2%)</span>
-                            </div>
-                            <div class="h-1.5 w-full bg-[#1E2023] rounded-full overflow-hidden">
-                                <div class="h-full bg-white/20" style="width: 20.2%"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-[#8C8C90] mb-1">
-                                <span>Apresiasi Penonton &amp; Donasi Komunitas</span>
-                                <span>Rp 2.380.000 (6.2%)</span>
-                            </div>
-                            <div class="h-1.5 w-full bg-[#1E2023] rounded-full overflow-hidden">
-                                <div class="h-full bg-white/20" style="width: 6.2%"></div>
-                            </div>
-                        </div>
+            <!-- [6] PAYOUT HISTORY TABLE -->
+            <section class="bg-[#141518] rounded-xl border border-white/[0.08] p-6 space-y-4" id="payout-history">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.06] pb-4">
+                    <div>
+                        <h2 class="text-base font-semibold text-[#F2EFEA]">Payout history</h2>
+                        <p class="font-mono text-xs text-[#8C8C90] mt-0.5">All withdrawal requests and their status</p>
                     </div>
+                    <button
+                        type="button"
+                        @click="exportPayoutCSV"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/10 bg-[#17181B] hover:bg-[#1E2023] text-xs font-mono text-[#F2EFEA] hover:text-[#7A9BFF] self-start transition-colors cursor-pointer"
+                    >
+                        <Download class="h-3.5 w-3.5" />
+                        <span>Export CSV</span>
+                    </button>
                 </div>
 
-                <div class="p-6 rounded-xl bg-[#141518] border border-white/[0.08] space-y-4">
-                    <h3 class="text-base font-semibold text-[#F2EFEA]">Riwayat Pencairan Terakhir</h3>
-                    <div class="space-y-3 font-mono text-xs">
-                        <div class="flex items-center justify-between p-3 rounded-lg bg-[#17181B] border border-white/[0.06]">
-                            <div>
-                                <p class="text-[#F2EFEA] font-medium">Penarikan BCA · 8820 9182 10</p>
-                                <p class="text-[#8C8C90] text-[11px]">10 Okt 2025 · ID: PAY-99214</p>
-                            </div>
-                            <div class="text-right">
-                                <span class="text-[#F2EFEA] font-semibold">Rp 3.500.000</span>
-                                <span class="block text-emerald-400 text-[10px]">Berhasil Diterima</span>
-                            </div>
+                <!-- Table responsive wrapper -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left font-mono text-xs">
+                        <thead>
+                            <tr class="text-[10px] text-[#8C8C90] uppercase tracking-wider border-b border-white/10">
+                                <th class="py-3 pr-4 font-normal w-[15%]">DATE</th>
+                                <th class="py-3 px-4 font-normal text-right w-[20%]">AMOUNT</th>
+                                <th class="py-3 px-4 font-normal w-[30%]">DESTINATION</th>
+                                <th class="py-3 px-4 font-normal w-[20%]">STATUS</th>
+                                <th class="py-3 pl-4 font-normal w-[15%]">REFERENCE</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/[0.06]">
+                            <tr
+                                v-for="item in payoutHistory"
+                                :key="item.id"
+                                class="hover:bg-white/[0.02] transition-colors"
+                                :class="item.status === 'failed' ? 'bg-[#E85C4A]/[0.03]' : ''"
+                            >
+                                <td class="py-3.5 pr-4 text-[#F2EFEA]">{{ item.date }}</td>
+                                <td class="py-3.5 px-4 text-right font-medium text-[#F2EFEA]">{{ item.amount }}</td>
+                                <td class="py-3.5 px-4 text-[#8C8C90]">{{ item.destination }}</td>
+                                <td class="py-3.5 px-4">
+                                    <div v-if="item.status === 'completed'">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] bg-[#7A9BFF]/10 text-[#7A9BFF] border border-[#7A9BFF]/20">
+                                            {{ item.statusLabel }}
+                                        </span>
+                                    </div>
+                                    <div v-else-if="item.status === 'failed'">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] bg-[#E85C4A]/10 text-[#E85C4A] border border-[#E85C4A]/20">
+                                            {{ item.statusLabel }}
+                                        </span>
+                                        <p v-if="item.errorNote" class="text-[10px] text-[#E85C4A] mt-0.5">
+                                            {{ item.errorNote }}
+                                        </p>
+                                    </div>
+                                    <div v-else>
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] bg-amber-400/10 text-amber-400 border border-amber-400/20">
+                                            {{ item.statusLabel }}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="py-3.5 pl-4">
+                                    <button
+                                        type="button"
+                                        @click="copyReferenceId(item.reference)"
+                                        class="flex items-center gap-1.5 text-[#8C8C90] hover:text-[#F2EFEA] transition-colors cursor-pointer group"
+                                        title="Copy Reference ID"
+                                    >
+                                        <span>{{ item.reference }}</span>
+                                        <Copy class="h-3 w-3 opacity-60 group-hover:opacity-100" />
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pt-2 flex justify-start">
+                    <button
+                        type="button"
+                        @click="triggerToast('Semua riwayat pencairan telah ditampilkan.')"
+                        class="text-[#7A9BFF] font-mono text-xs hover:underline flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                        <span>Load older payouts →</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- [7] PAYOUT METHOD CARD & [8] TAX NOTE -->
+            <div class="space-y-4">
+                <section class="bg-[#141518] rounded-xl border border-white/[0.08] p-6">
+                    <div class="flex items-center justify-between border-b border-white/[0.06] pb-4 mb-4">
+                        <div>
+                            <h2 class="text-base font-semibold text-[#F2EFEA]">Payout method</h2>
+                            <p class="font-mono text-xs text-[#8C8C90] mt-0.5">Where your earnings are sent</p>
                         </div>
-                        <div class="flex items-center justify-between p-3 rounded-lg bg-[#17181B] border border-white/[0.06]">
-                            <div>
-                                <p class="text-[#F2EFEA] font-medium">Penarikan BCA · 8820 9182 10</p>
-                                <p class="text-[#8C8C90] text-[11px]">15 Sep 2025 · ID: PAY-88102</p>
-                            </div>
-                            <div class="text-right">
-                                <span class="text-[#F2EFEA] font-semibold">Rp 4.100.000</span>
-                                <span class="block text-emerald-400 text-[10px]">Berhasil Diterima</span>
-                            </div>
-                        </div>
+                        <button
+                            type="button"
+                            @click="triggerToast('Membuka pengaturan metode pembayaran')"
+                            class="text-[#7A9BFF] font-mono text-xs hover:underline cursor-pointer"
+                        >
+                            Change method
+                        </button>
                     </div>
+
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="bg-[#17181B] rounded-lg border border-white/10 p-4 flex items-center gap-4 flex-1">
+                            <div class="w-10 h-10 rounded-lg bg-[#141518] border border-white/10 flex items-center justify-center text-[#7A9BFF]">
+                                <Landmark class="h-5 w-5" />
+                            </div>
+                            <div class="space-y-0.5 flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <h3 class="text-sm font-medium text-[#F2EFEA]">BCA — Bank Central Asia</h3>
+                                    <span class="font-mono text-[10px] bg-[#141518] text-[#7A9BFF] border border-[#7A9BFF]/30 px-1.5 py-0.2 rounded uppercase">
+                                        DEFAULT
+                                    </span>
+                                </div>
+                                <p class="font-mono text-xs text-[#8C8C90] truncate">**** 4821 · {{ userName }}</p>
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            @click="triggerToast('Form tambah metode pembayaran baru')"
+                            class="text-[#7A9BFF] font-mono text-xs hover:underline whitespace-nowrap self-start sm:self-center cursor-pointer"
+                        >
+                            Add another method →
+                        </button>
+                    </div>
+                </section>
+
+                <!-- [8] TAX NOTE -->
+                <div class="bg-[#141518]/70 border border-white/[0.08] rounded-xl px-4 py-3 flex items-center gap-3 text-[#8C8C90]">
+                    <Info class="h-4 w-4 text-[#7A9BFF] shrink-0" />
+                    <p class="font-mono text-xs leading-tight">
+                        Tax is automatically withheld at 2% (PPh 21) for Indonesian residents. You'll see the net amount on each payout.
+                    </p>
                 </div>
             </div>
         </main>
+
+        <!-- ============================================================== -->
+        <!-- [MODAL] WITHDRAWAL SLIDE-OVER DRAWER                            -->
+        <!-- ============================================================== -->
+        <div
+            v-if="isWithdrawDrawerOpen"
+            class="fixed inset-0 z-50 overflow-hidden bg-black/80 backdrop-blur-sm transition-opacity"
+            @click="isWithdrawDrawerOpen = false"
+        >
+            <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+                <div
+                    class="w-screen max-w-md bg-[#17181B] border-l border-white/15 p-6 shadow-2xl flex flex-col justify-between"
+                    @click.stop
+                >
+                    <div class="space-y-6">
+                        <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                            <div>
+                                <h2 class="text-lg font-semibold text-[#F2EFEA]">Withdraw funds</h2>
+                                <p class="font-mono text-xs text-[#8C8C90] mt-0.5">Transfer studio earnings to your verified bank</p>
+                            </div>
+                            <button
+                                type="button"
+                                @click="isWithdrawDrawerOpen = false"
+                                class="text-[#8C8C90] hover:text-[#F2EFEA] p-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                            >
+                                <X class="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <!-- Amount Input -->
+                        <div class="space-y-2">
+                            <label class="block font-mono text-[11px] uppercase tracking-wider text-[#8C8C90]">
+                                ENTER AMOUNT
+                            </label>
+                            <div class="relative bg-[#0E0F11] rounded-xl border border-white/15 px-4 py-3 flex items-center focus-within:border-[#1B44E8]">
+                                <span class="font-mono text-sm text-[#8C8C90] mr-2">Rp</span>
+                                <input
+                                    v-model="withdrawAmountInput"
+                                    type="text"
+                                    class="bg-transparent text-[#F2EFEA] font-mono text-xl font-semibold focus:outline-none w-full"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Quick Chips -->
+                        <div class="grid grid-cols-4 gap-2">
+                            <button
+                                type="button"
+                                @click="setQuickAmount(100000)"
+                                class="border border-white/10 bg-[#141518] hover:border-[#7A9BFF] hover:text-[#F2EFEA] rounded-lg py-1.5 text-center font-mono text-xs text-[#8C8C90] transition-colors cursor-pointer"
+                            >
+                                100K
+                            </button>
+                            <button
+                                type="button"
+                                @click="setQuickAmount(500000)"
+                                class="border border-white/10 bg-[#141518] hover:border-[#7A9BFF] hover:text-[#F2EFEA] rounded-lg py-1.5 text-center font-mono text-xs text-[#8C8C90] transition-colors cursor-pointer"
+                            >
+                                500K
+                            </button>
+                            <button
+                                type="button"
+                                @click="setQuickAmount(1000000)"
+                                class="border border-white/10 bg-[#141518] hover:border-[#7A9BFF] hover:text-[#F2EFEA] rounded-lg py-1.5 text-center font-mono text-xs text-[#8C8C90] transition-colors cursor-pointer"
+                            >
+                                1M
+                            </button>
+                            <button
+                                type="button"
+                                @click="setQuickAmount(availableBalance)"
+                                class="border border-[#7A9BFF]/40 bg-[#7A9BFF]/10 text-[#7A9BFF] rounded-lg py-1.5 text-center font-mono text-xs font-medium cursor-pointer"
+                            >
+                                All
+                            </button>
+                        </div>
+
+                        <!-- Payout Destination -->
+                        <div class="space-y-2">
+                            <label class="block font-mono text-[11px] uppercase tracking-wider text-[#8C8C90]">
+                                TRANSFER DESTINATION
+                            </label>
+                            <div class="bg-[#0E0F11] rounded-xl border border-white/15 p-3.5 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-lg bg-[#17181B] flex items-center justify-center text-[#7A9BFF]">
+                                        <Landmark class="h-4 w-4" />
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-medium text-[#F2EFEA]">BCA · Bank Central Asia</p>
+                                        <p class="font-mono text-[11px] text-[#8C8C90]">**** 4821 · {{ userName }}</p>
+                                    </div>
+                                </div>
+                                <span class="font-mono text-[10px] text-[#7A9BFF] border border-[#7A9BFF]/30 bg-[#7A9BFF]/10 px-2 py-0.5 rounded">
+                                    PRIMARY
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Tabular Calculation -->
+                        <div class="bg-[#0E0F11] rounded-xl border border-white/15 p-4 space-y-2.5 font-mono text-xs">
+                            <div class="flex justify-between text-[#8C8C90]">
+                                <span>Gross withdrawal</span>
+                                <span class="text-[#F2EFEA]">Rp {{ withdrawAmount.toLocaleString('id-ID') }}</span>
+                            </div>
+                            <div class="flex justify-between text-[#8C8C90]">
+                                <span>Tax withholding (PPh 21, 2%)</span>
+                                <span class="text-[#E85C4A]">−Rp {{ taxWithholding.toLocaleString('id-ID') }}</span>
+                            </div>
+                            <div class="border-t border-white/10 pt-2.5 flex justify-between text-sm font-semibold text-[#F2EFEA]">
+                                <span>Estimated arrival</span>
+                                <span class="text-[#7A9BFF]">Rp {{ netPayoutReceived.toLocaleString('id-ID') }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Actions -->
+                    <div class="pt-6 border-t border-white/10 space-y-3">
+                        <button
+                            type="button"
+                            @click="confirmWithdrawal"
+                            class="w-full bg-[#1B44E8] text-white py-3 rounded-xl font-medium text-xs hover:bg-[#1B44E8]/90 active:scale-[0.99] transition-all cursor-pointer shadow-lg"
+                        >
+                            Confirm withdrawal
+                        </button>
+                        <button
+                            type="button"
+                            @click="isWithdrawDrawerOpen = false"
+                            class="w-full border border-white/10 text-[#8C8C90] hover:text-[#F2EFEA] hover:bg-white/5 py-2.5 rounded-xl font-mono text-xs transition-colors cursor-pointer"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- ============================================================== -->
         <!-- [MODAL 1] UPLOAD NEW FILM MODAL                                -->
